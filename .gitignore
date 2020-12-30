@@ -1,0 +1,12 @@
+hw1/out/*
+hw2/out/*
+hw3/out/*
+hw3/gen_testcase/*
+hw4-1/out/*
+hw4-1/sample/cases/*
+hw4-1/print/*
+hw4-2/out/*
+hw4-2/sample/cases/*
+hw4-2/print/*
+lab4/out/*
+lab5/out/*

@@ -1,0 +1,676 @@
+[pp20s02@hades01 hw4-1]$ bash prof.
+prof.sh   prof.txt
+[pp20s02@hades01 hw4-1]$ bash prof.sh
+->1/28
+Metric: achieved_occupancy
+Param: 8 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics achieved_occupancy ./execs/hw4-1_prof /home/pp20
+/share/hw4-1/cases/c21.1 ./out/prof.out 8 8 8
+srun: job 151976 queued and waiting for resources
+srun: job 151976 has been allocated resources
+==94586== NVPROF is profiling process 94586, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 8 8 8
+==94586== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 8 8 8
+==94586== Profiling result:
+==94586== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        625                        achieved_occupancy                        Achieved Occupancy
+0.060421    0.060462    0.060441
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+       1250                        achieved_occupancy                        Achieved Occupancy
+0.031224    0.031781    0.031478
+==94586== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->2/28
+Metric: achieved_occupancy
+Param: 16 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics achieved_occupancy ./execs/hw4-1_prof /home/pp20
+/share/hw4-1/cases/c21.1 ./out/prof.out 16 8 8
+srun: job 152005 queued and waiting for resources
+srun: job 152005 has been allocated resources
+==94753== NVPROF is profiling process 94753, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 16 8 8
+==94753== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 16 8 8
+==94753== Profiling result:
+==94753== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        313                        achieved_occupancy                        Achieved Occupancy
+0.061600    0.061914    0.061876
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        626                        achieved_occupancy                        Achieved Occupancy
+0.031216    0.031725    0.031331
+==94753== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->3/28
+Metric: achieved_occupancy
+Param: 32 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics achieved_occupancy ./execs/hw4-1_prof /home/pp20
+/share/hw4-1/cases/c21.1 ./out/prof.out 32 8 8
+srun: job 152040 queued and waiting for resources
+srun: job 152040 has been allocated resources
+==94939== NVPROF is profiling process 94939, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 32 8 8
+==94939== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 32 8 8
+==94939== Profiling result:
+==94939== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        157                        achieved_occupancy                        Achieved Occupancy
+0.062131    0.062364    0.062357
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        314                        achieved_occupancy                        Achieved Occupancy
+0.031198    0.031713    0.031274
+==94939== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->4/28
+Metric: achieved_occupancy
+Param: 64 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics achieved_occupancy ./execs/hw4-1_prof /home/pp20
+/share/hw4-1/cases/c21.1 ./out/prof.out 64 8 8
+srun: job 152079 queued and waiting for resources
+srun: job 152079 has been allocated resources
+==95090== NVPROF is profiling process 95090, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 64 8 8
+==95090== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 64 8 8
+==95090== Profiling result:
+==95090== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+         79                        achieved_occupancy                        Achieved Occupancy
+0.062375    0.062465    0.062456
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        158                        achieved_occupancy                        Achieved Occupancy
+0.031192    0.031722    0.031259
+==95090== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->5/28
+Metric: gld_throughput
+Param: 8 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gld_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 8 8 8
+srun: job 152127 queued and waiting for resources
+srun: job 152127 has been allocated resources
+==95162== NVPROF is profiling process 95162, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 8 8 8
+==95162== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 8 8 8
+==95162== Profiling result:
+==95162== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        625                            gld_throughput                    Global Load Throughput  4.
+9500GB/s  5.3374GB/s  5.3327GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+       1250                            gld_throughput                    Global Load Throughput  53
+.534MB/s  126.91MB/s  126.63MB/s
+==95162== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->6/28
+Metric: gld_throughput
+Param: 16 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gld_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 16 8 8
+srun: job 152165 queued and waiting for resources
+srun: job 152165 has been allocated resources
+==95689== NVPROF is profiling process 95689, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 16 8 8
+==95689== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 16 8 8
+==95689== Profiling result:
+==95689== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        313                            gld_throughput                    Global Load Throughput  5.
+4371GB/s  5.6323GB/s  5.4650GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        626                            gld_throughput                    Global Load Throughput  65
+.208MB/s  131.66MB/s  129.64MB/s
+==95689== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->7/28
+Metric: gld_throughput
+Param: 32 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gld_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 32 8 8
+srun: job 152224 queued and waiting for resources
+srun: job 152224 has been allocated resources
+==95925== NVPROF is profiling process 95925, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 32 8 8
+==95925== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 32 8 8
+==95925== Profiling result:
+==95925== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        157                            gld_throughput                    Global Load Throughput  5.
+2227GB/s  5.7092GB/s  5.2344GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        314                            gld_throughput                    Global Load Throughput  64
+.656MB/s  136.00MB/s  121.82MB/s
+==95925== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->8/28
+Metric: gld_throughput
+Param: 64 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gld_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 64 8 8
+srun: job 152369 queued and waiting for resources
+srun: job 152369 has been allocated resources
+==96041== NVPROF is profiling process 96041, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 64 8 8
+==96041== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 64 8 8
+==96041== Profiling result:
+==96041== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+         79                            gld_throughput                    Global Load Throughput  4.
+1426GB/s  5.7249GB/s  4.6765GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        158                            gld_throughput                    Global Load Throughput  61
+.776MB/s  140.26MB/s  104.46MB/s
+==96041== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->9/28
+Metric: shared_load_throughput
+Param: 8 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics shared_load_throughput ./execs/hw4-1_prof /home/
+pp20/share/hw4-1/cases/c21.1 ./out/prof.out 8 8 8
+srun: job 152402 queued and waiting for resources
+srun: job 152402 has been allocated resources
+==96185== NVPROF is profiling process 96185, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 8 8 8
+==96185== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 8 8 8
+==96185== Profiling result:
+==96185== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        625                    shared_load_throughput             Shared Memory Load Throughput  12
+0.19GB/s  121.37GB/s  120.92GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+       1250                    shared_load_throughput             Shared Memory Load Throughput  1.
+7007GB/s  3.5035GB/s  3.4830GB/s
+==96185== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->10/28
+Metric: shared_load_throughput
+Param: 16 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics shared_load_throughput ./execs/hw4-1_prof /home/
+pp20/share/hw4-1/cases/c21.1 ./out/prof.out 16 8 8
+srun: job 152429 queued and waiting for resources
+srun: job 152429 has been allocated resources
+==96350== NVPROF is profiling process 96350, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 16 8 8
+==96350== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 16 8 8
+==96350== Profiling result:
+==96350== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        313                    shared_load_throughput             Shared Memory Load Throughput  30
+7.52GB/s  368.19GB/s  363.89GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        626                    shared_load_throughput             Shared Memory Load Throughput  4.
+8814GB/s  12.259GB/s  10.323GB/s
+==96350== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->11/28
+Metric: shared_load_throughput
+Param: 32 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics shared_load_throughput ./execs/hw4-1_prof /home/
+pp20/share/hw4-1/cases/c21.1 ./out/prof.out 32 8 8
+srun: job 152495 queued and waiting for resources
+srun: job 152495 has been allocated resources
+==96667== NVPROF is profiling process 96667, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 32 8 8
+==96667== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 32 8 8
+==96667== Profiling result:
+==96667== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        157                    shared_load_throughput             Shared Memory Load Throughput  72
+4.57GB/s  998.02GB/s  993.25GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        314                    shared_load_throughput             Shared Memory Load Throughput  9.
+2465GB/s  33.711GB/s  27.736GB/s
+==96667== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->12/28
+Metric: shared_load_throughput
+Param: 64 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics shared_load_throughput ./execs/hw4-1_prof /home/
+pp20/share/hw4-1/cases/c21.1 ./out/prof.out 64 8 8
+srun: job 152614 queued and waiting for resources
+srun: job 152614 has been allocated resources
+==96855== NVPROF is profiling process 96855, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 64 8 8
+==96855== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 64 8 8
+==96855== Profiling result:
+==96855== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+         79                    shared_load_throughput             Shared Memory Load Throughput  84
+8.49GB/s  1336.5GB/s  1333.0GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        158                    shared_load_throughput             Shared Memory Load Throughput  9.
+0158GB/s  41.220GB/s  35.591GB/s
+==96855== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->13/28
+Metric: shared_store_throughput
+Param: 8 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics shared_store_throughput ./execs/hw4-1_prof /home
+/pp20/share/hw4-1/cases/c21.1 ./out/prof.out 8 8 8
+srun: job 152652 queued and waiting for resources
+srun: job 152652 has been allocated resources
+==97207== NVPROF is profiling process 97207, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 8 8 8
+==97207== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 8 8 8
+==97207== Profiling result:
+==97207== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        625                   shared_store_throughput            Shared Memory Store Throughput  17
+.730GB/s  48.162GB/s  19.842GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+       1250                   shared_store_throughput            Shared Memory Store Throughput  11
+9.18MB/s  1.2197GB/s  368.16MB/s
+==97207== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->14/28
+Metric: shared_store_throughput
+Param: 16 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics shared_store_throughput ./execs/hw4-1_prof /home
+/pp20/share/hw4-1/cases/c21.1 ./out/prof.out 16 8 8
+srun: job 152661 queued and waiting for resources
+srun: job 152661 has been allocated resources
+==97390== NVPROF is profiling process 97390, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 16 8 8
+==97390== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 16 8 8
+==97390== Profiling result:
+==97390== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        313                   shared_store_throughput            Shared Memory Store Throughput  40
+.544GB/s  111.75GB/s  46.160GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        626                   shared_store_throughput            Shared Memory Store Throughput  27
+0.07MB/s  3.2381GB/s  863.96MB/s
+==97390== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->15/28
+Metric: shared_store_throughput
+Param: 32 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics shared_store_throughput ./execs/hw4-1_prof /home
+/pp20/share/hw4-1/cases/c21.1 ./out/prof.out 32 8 8
+srun: job 152755 queued and waiting for resources
+srun: job 152755 has been allocated resources
+==97605== NVPROF is profiling process 97605, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cas
+es/c21.1 ./out/prof.out 32 8 8
+==97605== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.o
+ut 32 8 8
+==97605== Profiling result:
+==97605== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        157                   shared_store_throughput            Shared Memory Store Throughput  65
+.301GB/s  206.10GB/s  76.875GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        314                   shared_store_throughput            Shared Memory Store Throughput  51
+7.25MB/s  6.7378GB/s  1.4151GB/s
+==97605== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->16/28
+Metric: shared_store_throughput
+Param: 64 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics shared_store_throughput ./execs/hw4-1_prof /home
+/pp20/share/hw4-1/cases/c21.1 ./out/prof.out 64 8 8
+srun: job 152887 queued and waiting for resources
+srun: job 152887 has been allocated resources
+==149268== NVPROF is profiling process 149268, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 64 8 8
+==149268== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 64 8 8
+==149268== Profiling result:
+==149268== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+         79                   shared_store_throughput            Shared Memory Store Throughput  46
+.330GB/s  175.79GB/s  61.697GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        158                   shared_store_throughput            Shared Memory Store Throughput  50
+8.15MB/s  6.8442GB/s  1.1734GB/s
+==149268== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->17/28
+Metric: gld_throughput
+Param: 8 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gld_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 8 8 8
+srun: job 152943 queued and waiting for resources
+srun: job 152943 has been allocated resources
+==149433== NVPROF is profiling process 149433, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 8 8 8
+==149433== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 8 8 8
+==149433== Profiling result:
+==149433== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        625                            gld_throughput                    Global Load Throughput  5.
+2788GB/s  5.3358GB/s  5.3153GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+       1250                            gld_throughput                    Global Load Throughput  58
+.688MB/s  126.90MB/s  126.36MB/s
+==149433== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->18/28
+Metric: gld_throughput
+Param: 16 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gld_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 16 8 8
+srun: job 153019 queued and waiting for resources
+srun: job 153019 has been allocated resources
+==149610== NVPROF is profiling process 149610, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 16 8 8
+==149610== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 16 8 8
+==149610== Profiling result:
+==149610== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        313                            gld_throughput                    Global Load Throughput  5.
+2288GB/s  5.7792GB/s  5.6554GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        626                            gld_throughput                    Global Load Throughput  67
+.807MB/s  136.21MB/s  134.51MB/s
+==149610== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->19/28
+Metric: gld_throughput
+Param: 32 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gld_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 32 8 8
+srun: job 153066 queued and waiting for resources
+srun: job 153066 has been allocated resources
+==149773== NVPROF is profiling process 149773, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 32 8 8
+==149773== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 32 8 8
+==149773== Profiling result:
+==149773== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        157                            gld_throughput                    Global Load Throughput  5.
+1880GB/s  5.7133GB/s  5.2141GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        314                            gld_throughput                    Global Load Throughput  64
+.931MB/s  136.28MB/s  121.34MB/s
+==149773== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->20/28
+Metric: gld_throughput
+Param: 64 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gld_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 64 8 8
+srun: job 153107 queued and waiting for resources
+srun: job 153107 has been allocated resources
+==149941== NVPROF is profiling process 149941, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 64 8 8
+==149941== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 64 8 8
+==149941== Profiling result:
+==149941== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+         79                            gld_throughput                    Global Load Throughput  4.
+6333GB/s  5.6823GB/s  4.6481GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        158                            gld_throughput                    Global Load Throughput  64
+.931MB/s  139.30MB/s  103.90MB/s
+==149941== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->21/28
+Metric: gst_throughput
+Param: 8 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gst_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 8 8 8
+srun: job 153180 queued and waiting for resources
+srun: job 153180 has been allocated resources
+==150126== NVPROF is profiling process 150126, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 8 8 8
+==150126== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 8 8 8
+==150126== Profiling result:
+==150126== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        625                            gst_throughput                   Global Store Throughput  14
+.139GB/s  14.274GB/s  14.226GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+       1250                            gst_throughput                   Global Store Throughput  15
+9.78MB/s  421.91MB/s  419.34MB/s
+==150126== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->22/28
+Metric: gst_throughput
+Param: 16 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gst_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 16 8 8
+srun: job 153241 queued and waiting for resources
+srun: job 153241 has been allocated resources
+==150300== NVPROF is profiling process 150300, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 16 8 8
+==150300== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 16 8 8
+==150300== Profiling result:
+==150300== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        313                            gst_throughput                   Global Store Throughput  14
+.007GB/s  25.658GB/s  15.691GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        626                            gst_throughput                   Global Store Throughput  26
+5.30MB/s  646.70MB/s  458.37MB/s
+==150300== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->23/28
+Metric: gst_throughput
+Param: 32 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gst_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 32 8 8
+srun: job 153286 queued and waiting for resources
+srun: job 153286 has been allocated resources
+==150561== NVPROF is profiling process 150561, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 32 8 8
+==150561== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 32 8 8
+==150561== Profiling result:
+==150561== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        157                            gst_throughput                   Global Store Throughput  12
+.823GB/s  35.198GB/s  13.072GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        314                            gst_throughput                   Global Store Throughput  25
+8.62MB/s  883.53MB/s  370.71MB/s
+==150561== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->24/28
+Metric: gst_throughput
+Param: 64 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics gst_throughput ./execs/hw4-1_prof /home/pp20/sha
+re/hw4-1/cases/c21.1 ./out/prof.out 64 8 8
+srun: job 153305 queued and waiting for resources
+srun: job 153305 has been allocated resources
+==150698== NVPROF is profiling process 150698, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 64 8 8
+==150698== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 64 8 8
+==150698== Profiling result:
+==150698== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+         79                            gst_throughput                   Global Store Throughput  8.
+0870GB/s  42.354GB/s  9.2863GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        158                            gst_throughput                   Global Store Throughput  21
+6.64MB/s  1.0979GB/s  251.10MB/s
+==150698== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->25/28
+Metric: sm_efficiency
+Param: 8 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics sm_efficiency ./execs/hw4-1_prof /home/pp20/shar
+e/hw4-1/cases/c21.1 ./out/prof.out 8 8 8
+srun: job 153339 queued and waiting for resources
+srun: job 153339 has been allocated resources
+==150823== NVPROF is profiling process 150823, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 8 8 8
+==150823== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 8 8 8
+==150823== Profiling result:
+==150823== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        625                             sm_efficiency                   Multiprocessor Activity
+  99.41%      99.77%      99.73%
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+       1250                             sm_efficiency                   Multiprocessor Activity
+   2.61%       5.12%       3.97%
+==150823== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->26/28
+Metric: sm_efficiency
+Param: 16 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics sm_efficiency ./execs/hw4-1_prof /home/pp20/shar
+e/hw4-1/cases/c21.1 ./out/prof.out 16 8 8
+srun: job 153358 queued and waiting for resources
+srun: job 153358 has been allocated resources
+==150970== NVPROF is profiling process 150970, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 16 8 8
+==150970== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 16 8 8
+==150970== Profiling result:
+==150970== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        313                             sm_efficiency                   Multiprocessor Activity
+  99.74%      99.92%      99.91%
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        626                             sm_efficiency                   Multiprocessor Activity
+   2.80%       5.09%       4.52%
+==150970== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->27/28
+Metric: sm_efficiency
+Param: 32 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics sm_efficiency ./execs/hw4-1_prof /home/pp20/shar
+e/hw4-1/cases/c21.1 ./out/prof.out 32 8 8
+srun: job 153389 queued and waiting for resources
+srun: job 153389 has been allocated resources
+==151220== NVPROF is profiling process 151220, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 32 8 8
+==151220== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 32 8 8
+==151220== Profiling result:
+==151220== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        157                             sm_efficiency                   Multiprocessor Activity
+  99.94%      99.98%      99.96%
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        314                             sm_efficiency                   Multiprocessor Activity
+   2.84%       5.08%       4.88%
+==151220== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+->28/28
+Metric: sm_efficiency
+Param: 64 8 8
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics sm_efficiency ./execs/hw4-1_prof /home/pp20/shar
+e/hw4-1/cases/c21.1 ./out/prof.out 64 8 8
+srun: job 153404 queued and waiting for resources
+srun: job 153404 has been allocated resources
+==151562== NVPROF is profiling process 151562, command: ./execs/hw4-1_prof /home/pp20/share/hw4-1/c
+ases/c21.1 ./out/prof.out 64 8 8
+==151562== Profiling application: ./execs/hw4-1_prof /home/pp20/share/hw4-1/cases/c21.1 ./out/prof.
+out 64 8 8
+==151562== Profiling result:
+==151562== Metric result:
+Invocations                               Metric Name                        Metric Description
+     Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+         79                             sm_efficiency                   Multiprocessor Activity
+  99.91%      99.96%      99.93%
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int, int)
+        158                             sm_efficiency                   Multiprocessor Activity
+   2.84%       5.07%       4.97%
+==151562== Warning: Some events/metrics can't be associated with any kernel.
+-----------------------
+[pp20s02@hades01 hw4-1]$

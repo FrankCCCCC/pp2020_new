@@ -1,0 +1,44 @@
+Invocations                               Metric Name                        Metric Description         Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int)
+         79                            gld_throughput                    Global Load Throughput  18.810GB/s  21.978GB/s  19.234GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int)
+        158                            gld_throughput                    Global Load Throughput  73.360MB/s  560.73MB/s  555.92MB/s
+==955190== Warning: Some events/metrics can't be associated with any kernel.
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 16 8 8
+==955214== NVPROF is profiling process 955214, command: ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 16 8 8
+==955214== Profiling application: ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 16 8 8
+==955214== Profiling result:
+==955214== Metric result:
+Invocations                               Metric Name                        Metric Description         Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int)
+         79                            gld_throughput                    Global Load Throughput  18.816GB/s  22.009GB/s  19.232GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int)
+        158                            gld_throughput                    Global Load Throughput  72.661MB/s  560.82MB/s  555.88MB/s
+==955214== Warning: Some events/metrics can't be associated with any kernel.
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 32 8 8
+==955238== NVPROF is profiling process 955238, command: ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 32 8 8
+==955238== Profiling application: ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 32 8 8
+==955238== Profiling result:
+==955238== Metric result:
+Invocations                               Metric Name                        Metric Description         Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int)
+         79                            gld_throughput                    Global Load Throughput  18.818GB/s  22.050GB/s  19.235GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int)
+        158                            gld_throughput                    Global Load Throughput  72.661MB/s  560.75MB/s  555.84MB/s
+==955238== Warning: Some events/metrics can't be associated with any kernel.
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 64 8 8
+srun: job 135312 queued and waiting for resources
+srun: job 135312 has been allocated resources
+==955305== NVPROF is profiling process 955305, command: ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 64 8 8
+==955305== Profiling application: ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 64 8 8
+==955305== Profiling result:
+==955305== Metric result:
+Invocations                               Metric Name                        Metric Description         Min         Max         Avg
+Device "GeForce GTX 1080 (0)"
+    Kernel: phase3_cal_cuda(int*, int, int, int, int, int, int, int, int)
+         79                            gld_throughput                    Global Load Throughput  18.378GB/s  21.552GB/s  18.821GB/s
+    Kernel: cal_cuda(int*, int, int, int, int, int, int, int, int)
+        158                            gld_throughput                    Global Load Throughput  70.643MB/s  546.84MB/s  542.09MB/s

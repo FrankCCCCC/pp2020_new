@@ -1,0 +1,35 @@
+Compiling...
+[0;32m->gld_throughput[0m
+[0;34mParam: 8 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 8 8 8
+Vertice: 5000, Edge: 10723117, B: 64
+[0;34mParam: 16 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 16 8 8
+Vertice: 5000, Edge: 10723117, B: 64
+[0;34mParam: 32 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 32 8 8
+Vertice: 5000, Edge: 10723117, B: 64
+[0;34mParam: 64 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 64 8 8
+Vertice: 5000, Edge: 10723117, B: 64
+Compiling...
+[0;32m->gld_throughput[0m
+[0;34mMetric: gld_throughput Param: 8 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 8 8 8
+Vertice: 5000, Edge: 10723117, B: 64
+[0;34mMetric: gld_throughput Param: 16 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 16 8 8
+Vertice: 5000, Edge: 10723117, B: 64
+[0;34mMetric: gld_throughput Param: 32 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 32 8 8
+[0;34mMetric: gld_throughput Param: 64 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 64 8 8
+[0;32m->gld_throughput[0m
+[0;34mParam: 8 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 8 8 8
+[0;34mParam: 16 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 16 8 8
+[0;34mParam: 32 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 32 8 8
+[0;34mParam: 64 8 8[0m
+srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f --metrics gld_throughput ./execs/hw4-1 /home/pp20/share/hw4-1/cases/c21.1 ./out/c21.1.out 64 8 8
