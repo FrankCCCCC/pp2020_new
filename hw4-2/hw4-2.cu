@@ -102,11 +102,11 @@ void setup_DistCuda(){
     cudaMemcpy(Dist_cuda1, Dist, (padding_n * padding_n * SIZEOFINT), cudaMemcpyHostToDevice);
 }
 void back_DistCuda(){
-    // cudaSetDevice(0);
-    // cudaMemcpy(Dist, Dist_cuda0, (padding_n * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost);
+    cudaSetDevice(0);
+    cudaMemcpy(Dist, Dist_cuda0, (padding_n * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost);
 
-    cudaSetDevice(1);
-    cudaMemcpy(Dist, Dist_cuda1, (padding_n * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost);
+    // cudaSetDevice(1);
+    // cudaMemcpy(Dist, Dist_cuda1, (padding_n * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost);
 }
 
 void input(char* infile) {
@@ -320,29 +320,36 @@ void block_FW_cuda(int B) {
         for(int i=0; i<num_stream; i++) {cudaStreamDestroy(streams[i]);}
 
         // /* Phase 3*/
-        // const dim3 grid_dim_p3(round, round);
-        // cudaSetDevice(0);
-        // phase3_cal_cuda<<<grid_dim_p3, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda0, padding_n, B, r, 0, 0);
+        const dim3 grid_dim_p3(round, round);
+        cudaSetDevice(0);
+        phase3_cal_cuda<<<grid_dim_p3, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda0, padding_n, B, r, 0, 0);
         // cudaMemcpyPeer(Dist_cuda1, 1, Dist_cuda0, 0, SIZEOFINT * padding_n * padding_n); 
 
-        // cudaSetDevice(1);
-        // phase3_cal_cuda<<<grid_dim_p3, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda1, padding_n, B, r, 0, 0);
-        // cudaMemcpyPeer(Dist_cuda0, 0, Dist_cuda1, 1, size); 
-
-        // cudaThreadSynchronize();
-        
-        const dim3 grid_dim_p31((round+1)/2, round);
-        const dim3 grid_dim_p32(round/2, round);
-
-        cudaSetDevice(0);
-        phase3_cal_cuda<<<grid_dim_p31, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda0, padding_n, B, r, 0, 0);
-        cudaMemcpyPeer(Dist_cuda1, 1, Dist_cuda0, 0, SIZEOFINT * ((round+1)/2 * B) * padding_n); 
-
         cudaSetDevice(1);
-        phase3_cal_cuda<<<grid_dim_p32, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda1, padding_n, B, r, (round+1)/2, 0);
-        cudaMemcpyPeer(&(Dist_cuda0[(round/2 * B) * padding_n]), 0, &(Dist_cuda1[(round/2 * B) * padding_n]), 1, SIZEOFINT * (round/2 * B) * padding_n); 
-        
+        phase3_cal_cuda<<<grid_dim_p3, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda1, padding_n, B, r, 0, 0);
+        // cudaMemcpyPeer(Dist_cuda0, 0, Dist_cuda1, 1, SIZEOFINT * padding_n * padding_n); 
+
         cudaDeviceSynchronize();
+        
+        // const dim3 grid_dim_p31((round+1)/2, round);
+        // const dim3 grid_dim_p32(round/2, round);
+        // cudaEvent_t d0_done, d1_done;
+        // cudaEventCreate(&d0_done);
+        // cudaEventCreate(&d1_done);
+
+        // cudaSetDevice(0);
+        // phase3_cal_cuda<<<grid_dim_p31, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda0, padding_n, B, r, 0, 0);
+        // cudaEventRecord(d0_done);
+        // cudaEventSynchronize(d1_done);
+        // cudaMemcpyPeer(Dist_cuda1, 1, Dist_cuda0, 0, SIZEOFINT * ((round+1)/2 * B) * padding_n); 
+
+        // cudaSetDevice(1);
+        // phase3_cal_cuda<<<grid_dim_p32, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda1, padding_n, B, r, (round+1)/2, 0);
+        // cudaEventRecord(d1_done);
+        // cudaEventSynchronize(d0_done);
+        // cudaMemcpyPeer(&(Dist_cuda0[(round/2 * B) * padding_n]), 0, &(Dist_cuda1[(round/2 * B) * padding_n]), 1, SIZEOFINT * (round/2 * B) * padding_n); 
+        
+        // cudaDeviceSynchronize();
 
         // cudaSetDevice(0);
         // for(int i=0; i<num_stream; i++) {cudaStreamCreate(&streams[i]);}
