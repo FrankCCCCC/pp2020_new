@@ -223,7 +223,7 @@ __global__ void phase22_cal_cuda(int *dist, int vertex_num, int B, int Round, in
 void block_FW_cuda(int B) {
     int round = padding_n / B;
     for (int r = 0; r < round; r++) {
-        printf("Round: %d in total: %d\n", r, round);
+        // printf("Round: %d in total: %d\n", r, round);
         // fflush(stdout);
         /* Phase 1*/
         phase1_cal_cuda<<<1, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda, padding_n, B, r, r, r);
@@ -244,17 +244,17 @@ void block_FW_cuda(int B) {
 
         // printf("After\n");
         /* Phase 3*/
-        const dim3 grid_dim_p3(round, round);
-        phase3_cal_cuda<<<grid_dim_p3, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda, padding_n, B, r, 0, 0);
+        // const dim3 grid_dim_p3(round, round);
+        // phase3_cal_cuda<<<grid_dim_p3, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda, padding_n, B, r, 0, 0);
 
-        const dim3 grid_dim_p31((round+1)/2, round);
-        const dim3 grid_dim_p32(round/2, round);
-        // phase3_cal_cuda<<<grid_dim_p31, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT, streams[0]>>>(Dist_cuda, padding_n, B, r, 0, 0);
-        // phase3_cal_cuda<<<grid_dim_p32, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT, streams[1]>>>(Dist_cuda, padding_n, B, r, (round+1)/2, 0);
+        const dim3 grid_dim_p31((round/2), round);
+        const dim3 grid_dim_p32(round-(round/2), round);
+        // phase3_cal_cuda<<<grid_dim_p31, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda, padding_n, B, r, 0, 0);
+        // phase3_cal_cuda<<<grid_dim_p32, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda, padding_n, B, r, (round+1)/2, 0);
 
         for(int i=0; i<num_stream; i++) {cudaStreamCreate(&streams[i]);}
         phase3_cal_cuda<<<grid_dim_p31, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT, streams[0]>>>(Dist_cuda, padding_n, B, r, 0, 0);
-        phase3_cal_cuda<<<grid_dim_p32, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT, streams[1]>>>(Dist_cuda, padding_n, B, r, (round+1)/2, 0);
+        phase3_cal_cuda<<<grid_dim_p32, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT, streams[1]>>>(Dist_cuda, padding_n, B, r, (round)/2, 0);
         for(int i=0; i<num_stream; i++) {cudaStreamDestroy(streams[i]);}
     }
 }
