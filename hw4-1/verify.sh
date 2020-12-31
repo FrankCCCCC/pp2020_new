@@ -7,8 +7,8 @@ rm ./execs/${program}
 echo -e "Compiling..."
 bash compile.sh
 
-# runner='srun -n 1 --gres=gpu:1'
-runner=''
+runner='srun -n 1 --gres=gpu:1'
+# runner=''
 # tcs=(0 4)
 tcs=(0 1 2 3 4 5 6 7 15 17 20 21)
 # tcs=(0 1 2 3 4 5 6 7 15)

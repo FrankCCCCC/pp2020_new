@@ -4,6 +4,9 @@
 #include <cuda.h>
 
 #define SIZEOFINT sizeof(int)
+#define BLOCK_DIM 32
+#define TH_DIM 32
+
 const int INF = ((1 << 30) - 1);
 const int blockdim_x = 32, blockdim_y = 32;
 const dim3 block_dim(blockdim_x, blockdim_y);
@@ -90,173 +93,176 @@ void output(char* outFileName) {
     fclose(outfile);
 }
 
-extern __shared__ int sm[];
-__global__ void phase1_cal_cuda(int *dist, int vertex_num, int B, int Round, int block_start_x, int block_start_y) {
-    // i-j block
-    int *a = &(sm[0]);
+__forceinline__
+__device__ void block_calc(int* C, int* A, int* B, int bj, int bi) {
+  for (int k = 0; k < BLOCK_DIM; k++) {
+    int sum0 = A[bi*BLOCK_DIM + k] + B[k*BLOCK_DIM + bj];
+    // int sum1 = A[(bi + TH_DIM)*BLOCK_DIM + k] + B[k*BLOCK_DIM + bj];
+    // int sum2 = A[bi*BLOCK_DIM + k] + B[k*BLOCK_DIM + (bj + TH_DIM)];
+    // int sum3 = A[(bi + TH_DIM)*BLOCK_DIM + k] + B[k*BLOCK_DIM + (bj + TH_DIM)];
 
-    // To calculate B*B elements in the block (b_i, b_j)
-    // For each block, it need to compute B times
-    int b_i = block_start_x + blockIdx.x;
-    int b_j = block_start_y + blockIdx.y;
-
-    // To calculate original index of elements in the block (b_i, b_j)
-    // For instance, original index of (0,0) in block (1,2) is (2,5) for V=6,B=2
-    int block_internal_start_x = b_i * B;
-    int block_internal_start_y = b_j * B;
-    
-    a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)] = dist[(block_internal_start_x + threadIdx.x) * vertex_num + (block_internal_start_y + threadIdx.y)];
+    C[bi*BLOCK_DIM + bj] = min(C[bi*BLOCK_DIM + bj], sum0);
+    // C[(bi + TH_DIM)*BLOCK_DIM + bj] = min(C[(bi + TH_DIM)*BLOCK_DIM + bj], sum1);
+    // C[bi*BLOCK_DIM + (bj + TH_DIM)] = min(C[bi*BLOCK_DIM + (bj + TH_DIM)], sum2);
+    // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = min(C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)], sum3);
     __syncthreads();
-
-    // Relax Path
-    for (int k = 0; k < B; k++) {
-        int d = a[(threadIdx.x) * Share_Mem_Row_Size + (k)] + a[(k) * Share_Mem_Row_Size + (threadIdx.y)];
-        a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)] = min(d, a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)]);
-        __syncthreads();
-    }
-    // Move modified block to global memory
-    dist[(block_internal_start_x + threadIdx.x) * vertex_num + (block_internal_start_y + threadIdx.y)] = a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)];
+  }
 }
 
-extern __shared__ int sm[];
-__global__ void phase3_cal_cuda(int *dist, int vertex_num, int B, int Round, int block_start_x, int block_start_y) {
-    // const int Share_Mem_Row_Size3 = 32;
-    // const int Share_Mem_Size_sq = 64 * 64;
-    // i-j block
-    int *a = &(sm[0]);
-    // i-k block
-    int *b = &(sm[Share_Mem_Size_sq]);
-    // k-j block
-    int *c = &(sm[2 * Share_Mem_Size_sq]);
+__forceinline__
+__device__ void block_calc_rev_async(int* C, int* A, int* B, int bj, int bi) {
+  #pragma unroll 5
+  for (int k = 0; k < BLOCK_DIM; k++) {
+    int sum0 = A[k*BLOCK_DIM + bi] + B[k*BLOCK_DIM + bj];
+    // int sum1 = A[k*BLOCK_DIM + (bi + TH_DIM)] + B[k*BLOCK_DIM + bj];
+    // int sum2 = A[k*BLOCK_DIM + bi] + B[k*BLOCK_DIM + (bj + TH_DIM)];
+    // int sum3 = A[k*BLOCK_DIM + (bi + TH_DIM)] + B[k*BLOCK_DIM + (bj + TH_DIM)];
 
-    // To calculate B*B elements in the block (b_i, b_j)
-    // For each block, it need to compute B times
-    int b_i = block_start_x + blockIdx.x;
-    int b_j = block_start_y + blockIdx.y;
-
-    // To calculate original index of elements in the block (b_i, b_j)
-    // For instance, original index of (0,0) in block (1,2) is (2,5) for V=6,B=2
-    int block_internal_start_x = b_i * B;
-    int block_internal_start_y = b_j * B;
-    int block_internal_start_k = Round * B;
-    
-    a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)] = dist[(block_internal_start_x + threadIdx.x) * vertex_num + (block_internal_start_y + threadIdx.y)];
-    c[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)] = dist[(block_internal_start_k + threadIdx.x) * vertex_num + (block_internal_start_y + threadIdx.y)];
-    // Reverse the row and column to ensure column-major iteration
-    b[(threadIdx.y) * Share_Mem_Row_Size + (threadIdx.x)] = dist[(block_internal_start_x + threadIdx.x) * vertex_num + (block_internal_start_k + threadIdx.y)];
-    __syncthreads();
-
-    // Relax Path
-    #pragma unroll 5
-    for (int k = 0; k < B; k++) {
-        int d = b[k * Share_Mem_Row_Size + (threadIdx.x)] + c[k * Share_Mem_Row_Size + (threadIdx.y)];
-        a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)] = min(d, a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)]);
-    }
-
-    // Move modified block to global memory
-    dist[(block_internal_start_x + threadIdx.x) * vertex_num + (block_internal_start_y + threadIdx.y)] = a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)];
+    C[bi*BLOCK_DIM + bj] = min(C[bi*BLOCK_DIM + bj], sum0);
+    // C[(bi + TH_DIM)*BLOCK_DIM + bj] = min(C[(bi + TH_DIM)*BLOCK_DIM + bj], sum1);
+    // C[bi*BLOCK_DIM + (bj + TH_DIM)] = min(C[bi*BLOCK_DIM + (bj + TH_DIM)], sum2);
+    // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = min(C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)], sum3);
+  }
 }
-extern __shared__ int sm[];
-__global__ void phase21_cal_cuda(int *dist, int vertex_num, int B, int Round, int block_start_x, int block_start_y) {
-    // i-j block
-    int *a = &(sm[0]);
-    // i-k block
-    int *b = &(sm[Share_Mem_Size_sq]);
 
-    // To calculate B*B elements in the block (b_i, b_j)
-    // For each block, it need to compute B times
-    int b_i = block_start_x + blockIdx.x;
-    int b_j = block_start_y + blockIdx.y;
+__global__ void floyd_warshall_block_kernel_phase1(int n, int k, int* graph) {
+  const unsigned int bi = threadIdx.y;
+  const unsigned int bj = threadIdx.x;
 
-    // To calculate original index of elements in the block (b_i, b_j)
-    // For instance, original index of (0,0) in block (1,2) is (2,5) for V=6,B=2
-    int block_internal_start_x = b_i * B;
-    int block_internal_start_y = b_j * B;
-    int block_internal_start_k = Round * B;
-    
-    a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)] = dist[(block_internal_start_x + threadIdx.x) * vertex_num + (block_internal_start_y + threadIdx.y)];
-    // Reverse the row and column to ensure column-major iteration
-    b[(threadIdx.y) * Share_Mem_Row_Size + (threadIdx.x)] = dist[(block_internal_start_x + threadIdx.x) * vertex_num + (block_internal_start_k + threadIdx.y)];
-    __syncthreads();
+  __shared__ int C[BLOCK_DIM * BLOCK_DIM];
 
-    // Relax Path
-    for (int k = 0; k < B; k++) {
-        int d = b[(k) * Share_Mem_Row_Size + (threadIdx.x)] + a[(k) * Share_Mem_Row_Size + (threadIdx.y)];
-        a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)] = min(d, a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)]);
-        __syncthreads();
-    }
-    // Move modified block to global memory
-    dist[(block_internal_start_x + threadIdx.x) * vertex_num + (block_internal_start_y + threadIdx.y)] = a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)];
+  // Transfer to temp shared arrays
+  C[bi*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
+  // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
+  // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+  // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+
+  __syncthreads();
+  
+  block_calc(C, C, C, bi, bj);
+
+  __syncthreads();
+
+  // Transfer back to graph
+  graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)] = C[bi*BLOCK_DIM + bj];
+  // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
+  // graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
+  // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
 }
-extern __shared__ int sm[];
-__global__ void phase22_cal_cuda(int *dist, int vertex_num, int B, int Round, int block_start_x, int block_start_y) {
-    // i-j block
-    int *a = &(sm[0]);
-    // k-j block
-    int *c = &(sm[2 * Share_Mem_Size_sq]);
 
-    // To calculate B*B elements in the block (b_i, b_j)
-    // For each block, it need to compute B times
-    int b_i = block_start_x + blockIdx.x;
-    int b_j = block_start_y + blockIdx.y;
 
-    // To calculate original index of elements in the block (b_i, b_j)
-    // For instance, original index of (0,0) in block (1,2) is (2,5) for V=6,B=2
-    int block_internal_start_x = b_i * B;
-    int block_internal_start_y = b_j * B;
-    int block_internal_start_k = Round * B;
-    
-    a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)] = dist[(block_internal_start_x + threadIdx.x) * vertex_num + (block_internal_start_y + threadIdx.y)];
-    c[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)] = dist[(block_internal_start_k + threadIdx.x) * vertex_num + (block_internal_start_y + threadIdx.y)];
-    __syncthreads();
+__global__ void floyd_warshall_block_kernel_phase2(int n, int k, int* graph) {
+  // BlockDim is one dimensional (Straight along diagonal)
+  // Blocks themselves are two dimensional
+  const unsigned int i = blockIdx.x;
+  const unsigned int bi = threadIdx.y;
+  const unsigned int bj = threadIdx.x;
 
-    // Relax Path
-    for (int k = 0; k < B; k++) {
-        int d = a[(threadIdx.x) * Share_Mem_Row_Size + (k)] + c[(k) * Share_Mem_Row_Size + (threadIdx.y)];
-        a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)] = min(d, a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)]);
-        __syncthreads();
-    }
-    // Move modified block to global memory
-    dist[(block_internal_start_x + threadIdx.x) * vertex_num + (block_internal_start_y + threadIdx.y)] = a[(threadIdx.x) * Share_Mem_Row_Size + (threadIdx.y)];
+  __shared__ int A[BLOCK_DIM * BLOCK_DIM];
+  __shared__ int B[BLOCK_DIM * BLOCK_DIM];
+  __shared__ int C[BLOCK_DIM * BLOCK_DIM];
+
+  C[bi*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
+  // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
+  // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+  // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+
+  B[bi*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
+  // B[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
+  // B[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+  // B[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+
+  __syncthreads();
+
+  block_calc(C, C, B, bi, bj);
+
+  __syncthreads();
+
+  graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)] = C[bi*BLOCK_DIM + bj];
+  // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
+  // graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
+  // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
+
+  // Phase 2 1/2
+
+  C[bi*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + bj)];
+  // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + bj)];
+  // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + (bj + TH_DIM))];
+  // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + (bj + TH_DIM))];
+
+  A[bi*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
+  // A[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
+  // A[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+  // A[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+
+  __syncthreads();
+
+  block_calc(C, A, C, bi, bj);
+
+  __syncthreads();
+
+  // Block C is the only one that could be changed
+  graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + bj)] = C[bi*BLOCK_DIM + bj];
+  // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
+  // graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
+  // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
 }
+
+
+__global__ void floyd_warshall_block_kernel_phase3(int n, int k, int* graph) {
+  // BlockDim is one dimensional (Straight along diagonal)
+  // Blocks themselves are two dimensional
+  const unsigned int j = blockIdx.x;
+  const unsigned int i = blockIdx.y;
+  const unsigned int bi = threadIdx.y;
+  const unsigned int bj = threadIdx.x;
+
+  __shared__ int A[BLOCK_DIM * BLOCK_DIM];
+  __shared__ int B[BLOCK_DIM * BLOCK_DIM];
+  __shared__ int C[BLOCK_DIM * BLOCK_DIM];
+
+  C[bi*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)];
+  // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
+  // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+  // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+
+  A[bj*BLOCK_DIM + bi] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
+  // A[bj*BLOCK_DIM + (bi + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
+  // A[(bj + TH_DIM)*BLOCK_DIM + bi] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+  // A[(bj + TH_DIM)*BLOCK_DIM + (bi + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+
+  B[bi*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)];
+  // B[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
+  // B[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+  // B[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+
+  __syncthreads();
+
+  block_calc_rev_async(C, A, B, bi, bj);
+
+  __syncthreads();
+
+  graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)] = C[bi*BLOCK_DIM + bj];
+  // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
+  // graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
+  // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
+}
+
 
 void block_FW_cuda(int B) {
-    int round = padding_n / B;
-    for (int r = 0; r < round; r++) {
-        // printf("Round: %d in total: %d\n", r, round);
-        // fflush(stdout);
-        /* Phase 1*/
-        phase1_cal_cuda<<<1, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda, padding_n, B, r, r, r);
+    // int round = padding_n / B;
+    const int blocks = (padding_n + BLOCK_DIM - 1) / BLOCK_DIM;
+    dim3 block_dim(TH_DIM, TH_DIM, 1);
+    dim3 phase4_grid(blocks, blocks, 1);
 
-        /* Phase 2*/
-        const int num_stream = 2;
-        const dim3 grid_dim_p21(1, round);
-        const dim3 grid_dim_p22(round, 1);
-        cudaStream_t streams[num_stream];
-        for(int i=0; i<num_stream; i++) {cudaStreamCreate(&streams[i]);}
-        //  (block_width, block_height): (round, 1)
-        phase21_cal_cuda<<<grid_dim_p21, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT, streams[0]>>>(Dist_cuda, padding_n, B, r, r, 0);
-        //  (block_width, block_height): (1, round)
-        phase22_cal_cuda<<<grid_dim_p22, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT, streams[1]>>>(Dist_cuda, padding_n, B, r, 0, r);
-        for(int i=0; i<num_stream; i++) {
-            cudaStreamDestroy(streams[i]);
-        }
+  // std::cout << "Launching Kernels Blocks: " << blocks << " Size " << padding_n << "\n";
+  for (int k = 0; k < blocks; k++) {
+    floyd_warshall_block_kernel_phase1<<<1, block_dim>>>(padding_n, k, Dist_cuda);
 
-        // printf("After\n");
-        /* Phase 3*/
-        const dim3 grid_dim_p3(round, round);
-        phase3_cal_cuda<<<grid_dim_p3, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda, padding_n, B, r, 0, 0);
+    floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(padding_n, k, Dist_cuda);
 
-        // const dim3 grid_dim_p31((round/2), round);
-        // const dim3 grid_dim_p32(round-(round/2), round);
-        // phase3_cal_cuda<<<grid_dim_p31, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda, padding_n, B, r, 0, 0);
-        // phase3_cal_cuda<<<grid_dim_p32, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda, padding_n, B, r, (round+1)/2, 0);
-
-        // for(int i=0; i<num_stream; i++) {cudaStreamCreate(&streams[i]);}
-        // phase3_cal_cuda<<<grid_dim_p31, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT, streams[0]>>>(Dist_cuda, padding_n, B, r, 0, 0);
-        // phase3_cal_cuda<<<grid_dim_p32, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT, streams[1]>>>(Dist_cuda, padding_n, B, r, (round)/2, 0);
-        // for(int i=0; i<num_stream; i++) {cudaStreamDestroy(streams[i]);}
-    }
+    floyd_warshall_block_kernel_phase3<<<phase4_grid, block_dim>>>(padding_n, k, Dist_cuda);
+  }
 }
 
 int main(int argc, char* argv[]) {
