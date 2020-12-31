@@ -7,8 +7,8 @@ rm ./execs/${program}
 echo -e "Compiling..."
 bash compile.sh
 
-runner='srun -n 1 --gres=gpu:1'
-# runner=''
+# runner='srun -n 1 --gres=gpu:1'
+runner=''
 # tcs=(0 4)
 tcs=(0 1 2 3 4 5 6 7 15 17 20 21)
 # tcs=(0 1 2 3 4 5 6 7 15)
@@ -29,11 +29,11 @@ do
     fi
     rm out/c${num}.1.out
 
-    echo -e "./execs/${program} ./sample/cases/c${num}.1 ./out/c${num}.1.out"
+    echo -e "./execs/${program} /home/pp20/share/hw4-1/cases/c${num}.1 ./out/c${num}.1.out"
     
-    time ${runner} ./execs/${program} ./sample/cases/c${num}.1 ./out/c${num}.1.out
+    time ${runner} ./execs/${program} /home/pp20/share/hw4-1/cases/c${num}.1 ./out/c${num}.1.out
     echo -e "Diff Result:"
-    diff sample/cases/c${num}.1.out out/c${num}.1.out
+    diff /home/pp20/share/hw4-1/cases/c${num}.1.out out/c${num}.1.out
     # diff sample/cases/c0${tcs[idx]}.1 out/c0${tcs[idx]}.1.out
     echo -e "----------------------------------------"
     echo -e ""
