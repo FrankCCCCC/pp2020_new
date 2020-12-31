@@ -297,7 +297,6 @@ void block_FW_cuda(int B) {
         phase1_cal_cuda<<<1, block_dim, 3*Share_Mem_Size_sq*SIZEOFINT>>>(Dist_cuda1, padding_n, B, r, r, r);
 
         /* Phase 2*/
-        
         const int num_stream = 2;
         const dim3 grid_dim_p21(1, round);
         const dim3 grid_dim_p22(round, 1);
