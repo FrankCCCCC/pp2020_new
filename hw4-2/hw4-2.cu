@@ -4,8 +4,8 @@
 #include <cuda.h>
 
 #define SIZEOFINT sizeof(int)
-#define BLOCK_DIM 24
-#define TH_DIM 24
+#define BLOCK_DIM 2
+#define TH_DIM 2
 
 const int INF = ((1 << 30) - 1);
 int n, m, padding_n;
