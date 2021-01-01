@@ -2,15 +2,19 @@
 program="hw4-2"
 
 echo -e "Setting up Environment..."
+mkdir out
 rm ./execs/${program}
+rm ./out/c*
 
 echo -e "Compiling..."
 bash compile.sh
 
+# tc_dir='/home/pp20/share/hw4-1/cases/'
+tc_dir='./sample/s_cases/'
 # runner='srun -n 1 --gres=gpu:1'
 runner=''
-# tcs=(0 4)
-tcs=(0 1 2 3 4 5 6 7 15 17 20 21)
+# tcs=(0 1)
+tcs=(0 1 2 3 4 5 6 7 15 17)
 # tcs=(0 1 2 3 4 5 6 7 15)
 # tcs=(0 17 18)
 # tcs=(0 21)
@@ -29,11 +33,11 @@ do
     fi
     rm out/c${num}.1.out
 
-    echo -e "./execs/${program} /home/pp20/share/hw4-2/cases/c${num}.1 ./out/c${num}.1.out"
+    echo -e "./execs/${program} ${tc_dir}c${num}.1 ./out/c${num}.1.out"
     
-    time ${runner} ./execs/${program} /home/pp20/share/hw4-2/cases/c${num}.1 ./out/c${num}.1.out
+    time ${runner} ./execs/${program} ${tc_dir}c${num}.1 ./out/c${num}.1.out
     echo -e "Diff Result:"
-    diff /home/pp20/share/hw4-2/cases/c${num}.1.out out/c${num}.1.out
+    diff ${tc_dir}c${num}.1.out out/c${num}.1.out
     # diff sample/cases/c0${tcs[idx]}.1 out/c0${tcs[idx]}.1.out
     echo -e "----------------------------------------"
     echo -e ""
