@@ -48,10 +48,10 @@ do
         echo -e "${COLOR_GREEN}->${id}/${total}${COLOR_REST}"
         echo -e "${COLOR_BLUE}Metric: ${met}"
         echo -e "Param: ${Bs[idxj]} ${dim_x} ${dim_y}${COLOR_REST}"
-        # echo -e "srun -p prof -N1 -n1 --gres=gpu:1 nvprof -f -o ${prof_file} --metrics ${met} ${target} /home/pp20/share/hw4-1/cases/${tc} ./out/${out} ${bs} ${dim_x} ${dim_y}"
-        # echo -e "srun -p prof -N1 -n1 --gres=gpu:1 nvprof --csv ${prof_out_csv_dir}${bs}_${met}_${prof_out_csv} --metrics ${met} ${target} /home/pp20/share/hw4-1/cases/${tc} ./out/${out} ${bs} ${dim_x} ${dim_y}"
-        # srun -p prof -N1 -n1 --gres=gpu:1 nvprof --csv ${prof_out_csv_dir}${bs}_${met}_${prof_out_csv} --metrics ${met} ${target} /home/pp20/share/hw4-1/cases/${tc} ./out/${out} ${bs} ${dim_x} ${dim_y}
-        echo -e "srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics ${met} ${target} /home/pp20/share/hw4-1/cases/${tc} ./out/${out} ${bs} ${dim_x} ${dim_y}"
+        # echo -e "srun -p prof -N1 -n1 --gres=gpu:2 nvprof -f -o ${prof_file} --metrics ${met} ${target} /home/pp20/share/hw4-1/cases/${tc} ./out/${out} ${bs} ${dim_x} ${dim_y}"
+        # echo -e "srun -p prof -N1 -n1 --gres=gpu:2 nvprof --csv ${prof_out_csv_dir}${bs}_${met}_${prof_out_csv} --metrics ${met} ${target} /home/pp20/share/hw4-1/cases/${tc} ./out/${out} ${bs} ${dim_x} ${dim_y}"
+        # srun -p prof -N1 -n1 --gres=gpu:2 nvprof --csv ${prof_out_csv_dir}${bs}_${met}_${prof_out_csv} --metrics ${met} ${target} /home/pp20/share/hw4-1/cases/${tc} ./out/${out} ${bs} ${dim_x} ${dim_y}
+        echo -e "srun -p prof -N1 -n1 --gres=gpu:2 nvprof --metrics ${met} ${target} /home/pp20/share/hw4-1/cases/${tc} ./out/${out} ${bs} ${dim_x} ${dim_y}"
         srun -p prof -N1 -n1 --gres=gpu:1 nvprof --metrics ${met} ${target} /home/pp20/share/hw4-1/cases/${tc} ./out/${out} ${bs} ${dim_x} ${dim_y}
         echo -e "-----------------------\n" >> prof_f.txt
         echo -e "${COLOR_BLUE}-----------------------${COLOR_REST}"

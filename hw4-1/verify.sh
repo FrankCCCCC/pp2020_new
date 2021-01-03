@@ -9,11 +9,12 @@ bash compile.sh
 
 # runner='srun -n 1 --gres=gpu:1'
 runner=''
+tc_dir='./sample/s_cases/'
 # tcs=(0 4)
-tcs=(0 1 2 3 4 5 6 7 15 17 20 21)
+tcs=(0 1 2 3 4 5 6 7 15 17)
 # tcs=(0 1 2 3 4 5 6 7 15)
 # tcs=(0 17 18)
-# tcs=(0 21)
+# tcs=(0 1)
 tc_num=${#tcs[@]}
 # vatc_numr=$((tc_num+1))
 
@@ -29,11 +30,11 @@ do
     fi
     rm out/c${num}.1.out
 
-    echo -e "./execs/${program} /home/pp20/share/hw4-1/cases/c${num}.1 ./out/c${num}.1.out"
+    echo -e "./execs/${program} ${tc_dir}c${num}.1 ./out/c${num}.1.out"
     
-    time ${runner} ./execs/${program} /home/pp20/share/hw4-1/cases/c${num}.1 ./out/c${num}.1.out
+    time ${runner} ./execs/${program} ${tc_dir}c${num}.1 ./out/c${num}.1.out
     echo -e "Diff Result:"
-    diff /home/pp20/share/hw4-1/cases/c${num}.1.out out/c${num}.1.out
+    diff ${tc_dir}c${num}.1.out out/c${num}.1.out
     # diff sample/cases/c0${tcs[idx]}.1 out/c0${tcs[idx]}.1.out
     echo -e "----------------------------------------"
     echo -e ""
