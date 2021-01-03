@@ -420,42 +420,37 @@ void block_FW_cuda1() {
     // printf("Up Blocks: %d, Bottom Blocks: %d\n", up_part_b_size, bottom_part_b_size);
 
     dim3 block_dim(TH_DIM, TH_DIM, 1);
-    // dim3 phase3_grid(blocks, blocks, 1);
     dim3 phase31_grid(blocks, up_part_b_size, 1);
     dim3 phase32_grid(blocks, bottom_part_b_size, 1);
-
-    const int num_stream = 2;
-    cudaStream_t streams[num_stream];
-    for(int i=0; i<num_stream; i++) {cudaStreamCreate(&streams[i]);}
 
     for (int k = 0; k < blocks; k++) {
         // Phase 1
         cudaSetDevice(0);
-        floyd_warshall_block_kernel_phase1<<<1, block_dim, 0>>>(padding_n, k, Dist_cuda0);
+        floyd_warshall_block_kernel_phase1<<<1, block_dim>>>(padding_n, k, Dist_cuda0);
 
         cudaSetDevice(1);
-        floyd_warshall_block_kernel_phase1<<<1, block_dim, 0>>>(padding_n, k, Dist_cuda1);
+        floyd_warshall_block_kernel_phase1<<<1, block_dim>>>(padding_n, k, Dist_cuda1);
 
         // Phase 2
         cudaSetDevice(0);
-        floyd_warshall_block_kernel_phase2<<<blocks, block_dim, 0>>>(padding_n, k, Dist_cuda0);
+        floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(padding_n, k, Dist_cuda0);
 
         cudaSetDevice(1);
-        floyd_warshall_block_kernel_phase2<<<blocks, block_dim, 0>>>(padding_n, k, Dist_cuda1);
+        floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(padding_n, k, Dist_cuda1);
 
         // Phase 3
         cudaSetDevice(0);
-        floyd_warshall_block_kernel_phase3<<<phase31_grid, block_dim, 0>>>(padding_n, k, Dist_cuda0, 0, 0);
+        floyd_warshall_block_kernel_phase3<<<phase31_grid, block_dim>>>(padding_n, k, Dist_cuda0, 0, 0);
 
         cudaSetDevice(1);
-        floyd_warshall_block_kernel_phase3<<<phase32_grid, block_dim, 0>>>(padding_n, k, Dist_cuda1, 0, up_part_b_size);
+        floyd_warshall_block_kernel_phase3<<<phase32_grid, block_dim>>>(padding_n, k, Dist_cuda1, 0, up_part_b_size);
 
         // Transfer data to another GPU
         int next_k = k + 1;
         if(next_k < up_part_b_size){
-            cudaMemcpyPeerAsync(&(Dist_cuda1[next_k * row_b_size]), 1, &(Dist_cuda0[next_k * row_b_size]), 0, SIZEOFINT * row_b_size); 
+            cudaMemcpyPeer(&(Dist_cuda1[next_k * row_b_size]), 1, &(Dist_cuda0[next_k * row_b_size]), 0, SIZEOFINT * row_b_size); 
         }else if(up_part_b_size < next_k < blocks){
-            cudaMemcpyPeerAsync(&(Dist_cuda0[next_k * row_b_size]), 0, &(Dist_cuda1[next_k * row_b_size]), 1, SIZEOFINT * row_b_size); 
+            cudaMemcpyPeer(&(Dist_cuda0[next_k * row_b_size]), 0, &(Dist_cuda1[next_k * row_b_size]), 1, SIZEOFINT * row_b_size); 
         }
     }
     for(int i=0; i<num_stream; i++) {cudaStreamDestroy(streams[i]);}

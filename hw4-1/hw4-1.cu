@@ -2,32 +2,54 @@
 #include <stdlib.h>
 #include <cuda_runtime.h>
 #include <cuda.h>
+#include <cooperative_groups.h>
+// #include <cooperative_groups/memcpy_async.h>
 
 #define SIZEOFINT sizeof(int)
 #define BLOCK_DIM 32
 #define TH_DIM 32
 
 const int INF = ((1 << 30) - 1);
-int n, m, padding_n;
+int n, m, padding_n, pitch_k;
+size_t pitch;
 int *Dist, *Dist_s;
 int *Dist_cuda;
 
-// void show_mat(int *start_p, int vertex_num){
-//     for(int i = 0; i < vertex_num; i++){
-//         for(int j = 0; j < vertex_num; j++){
-//             if(start_p[i * vertex_num + j] == INF){
-//                 printf("INF\t  ");
-//             }else{
-//                 printf("%d\t  ", start_p[i * vertex_num + j]);
-//             }   
-//         }
-//         printf("\n");
-//     }
-// }
+void show_mat(int *start_p, int vertex_num, int pitch){
+    printf("---\n");
+    for(int i = 0; i < vertex_num; i++){
+        for(int j = 0; j < vertex_num; j++){
+            if(start_p[i * pitch + j] == INF){
+                printf("INF\t  ");
+            }else{
+                printf("%d\t  ", start_p[i * pitch + j]);
+            }   
+        }
+        printf("\n");
+    }
+    printf("---\n");
+}
+void show_mat_cuda(int *start_p, int vertex_num, int padding_n, size_t pitch, int device_id){
+    int *temp = (int*)malloc(SIZEOFINT * padding_n * padding_n);
+    cudaSetDevice(device_id);
+    // cudaMemcpy(temp, start_p, (SIZEOFINT * vertex_num * vertex_num), cudaMemcpyDeviceToHost);
+    cudaMemcpy2D(temp, SIZEOFINT * padding_n, start_p, pitch, SIZEOFINT * padding_n, padding_n, cudaMemcpyDeviceToHost);
+    printf("---\n");
+    for(int i = 0; i < vertex_num; i++){
+        for(int j = 0; j < vertex_num; j++){
+            if(temp[i * vertex_num + j] == INF){
+                printf("INF\t  ");
+            }else{
+                printf("%d\t  ", temp[i * vertex_num + j]);
+            }   
+        }
+        printf("\n");
+    }
+    printf("---\n");
+}
 
 void malloc_Dist(){
     cudaHostAlloc(&Dist, SIZEOFINT * padding_n * padding_n, cudaHostAllocPortable);
-    // Dist = (int*)malloc(SIZEOFINT * padding_n * padding_n);
     Dist_s = (int*)malloc(SIZEOFINT * n * n);
 }
 int getDist(int i, int j){return Dist[i * padding_n + j];}
@@ -35,12 +57,15 @@ int *getDistAddr(int i, int j){return &(Dist[i * padding_n + j]);}
 void setDist(int i, int j, int val){Dist[i * padding_n + j] = val;}
 
 void setup_DistCuda(){
-    cudaMalloc((void **)&Dist_cuda, SIZEOFINT * padding_n * padding_n);
-    cudaMemcpy(Dist_cuda, Dist, (padding_n * padding_n * SIZEOFINT), cudaMemcpyHostToDevice);
-    // cudaHostGetDevicePointer(&Dist_cuda, Dist, 0);
+    // cudaMalloc((void **)&Dist_cuda, SIZEOFINT * padding_n * padding_n);
+    // cudaMemcpy(Dist_cuda, Dist, (padding_n * padding_n * SIZEOFINT), cudaMemcpyHostToDevice);
+    cudaMallocPitch(&Dist_cuda, &pitch, SIZEOFINT * padding_n, padding_n);
+    cudaMemcpy2D(Dist_cuda, pitch, Dist, SIZEOFINT * padding_n, SIZEOFINT * padding_n, padding_n, cudaMemcpyHostToDevice);
+    pitch_k = ((int)pitch) / SIZEOFINT;
 }
 void back_DistCuda(){
-    cudaMemcpy(Dist, Dist_cuda, (padding_n * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost);
+    // cudaMemcpy(Dist, Dist_cuda, (padding_n * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost);
+    cudaMemcpy2D(Dist, SIZEOFINT * padding_n, Dist_cuda, pitch, SIZEOFINT * padding_n, padding_n, cudaMemcpyDeviceToHost);
 }
 
 void input(char* infile) {
@@ -205,6 +230,9 @@ __global__ void floyd_warshall_block_kernel_phase3(int n, int k, int* graph, int
     __shared__ int B[BLOCK_DIM * BLOCK_DIM];
     __shared__ int C[BLOCK_DIM * BLOCK_DIM];
 
+    // auto group = cooperative_groups::this_thread_block();
+    // cooperative_groups::memcpy_async(group, shared, &global1[subset * group.size()], sizeof(T) * group.size());
+
     C[bi*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)];
     // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
     // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
@@ -240,22 +268,24 @@ void block_FW_cuda() {
     dim3 phase3_grid(blocks, blocks, 1);
 
     for (int k = 0; k < blocks; k++) {
-        floyd_warshall_block_kernel_phase1<<<1, block_dim>>>(padding_n, k, Dist_cuda);
-        floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(padding_n, k, Dist_cuda);
-        floyd_warshall_block_kernel_phase3<<<phase3_grid, block_dim>>>(padding_n, k, Dist_cuda, 0, 0);
+        floyd_warshall_block_kernel_phase1<<<1, block_dim>>>(pitch_k, k, Dist_cuda);
+        floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(pitch_k, k, Dist_cuda);
+        floyd_warshall_block_kernel_phase3<<<phase3_grid, block_dim>>>(pitch_k, k, Dist_cuda, 0, 0);
     }
 }
 
 int main(int argc, char* argv[]) {
     input(argv[1]);
-    // show_mat(getDistAddr(0, 0), n);
+    // show_mat(getDistAddr(0, 0), n, padding_n);
     setup_DistCuda();
+    // show_mat_cuda(Dist_cuda, n, padding_n, pitch, 0);
+    // printf("Pitch: %d, Pitch_k: %d\n", pitch, pitch_k);
     // printf("Vertice: %d, Edge: %d, B: %d, Padding: %d\n", n, m, BLOCK_DIM, padding_n);
     block_FW_cuda();
     back_DistCuda();
     // show_mat(getDistAddr(0, 0), n);
     
     output(argv[2]);
-    // show_mat(getDistAddr(0, 0), n);
+    // show_mat(getDistAddr(0, 0), n, padding_n);
     return 0;
 }
