@@ -6,7 +6,7 @@ COLOR_RED='\e[0;31m'
 
 # runner='srun -p prof -N1 -n1 --gres=gpu:1'
 runner=''
-program="hw4-1_t"
+program="hw4-2_t"
 out='test.out'
 res="./measure/res.csv"
 
@@ -21,7 +21,7 @@ mv ${program} ../execs/${program}
 cd ..
 
 # Testcases
-tcs=('c10.1' 'c15.1' 'c17.1' 'c18.1' 'c20.1' 'p11k1')
+tcs=('c10.1' 'c15.1' 'c17.1' 'c18.1' 'c19.1')
 tc_num=${#tcs[@]}
 
 echo "verteice, computing, H2D, D2H, I/O Read, I/O Write, execution time" >> ${res}
@@ -37,8 +37,8 @@ do
     # fi
     # rm out/c${num}.1.out
 
-    echo -e "${runner} ./execs/${program} ./sample/cases/${tcs[idx]} ./out/${out} >> ${res}"
-    ${runner} ./execs/${program} ./sample/cases/${tcs[idx]} ./out/${out} >> ${res}
+    echo -e "${runner} ./execs/${program} ./sample/s_cases/${tcs[idx]} ./out/${out} >> ${res}"
+    ${runner} ./execs/${program} ./sample/s_cases/${tcs[idx]} ./out/${out} >> ${res}
 done
 
 rm ./out/${out}

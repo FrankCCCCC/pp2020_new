@@ -2,17 +2,18 @@
 #include <stdlib.h>
 #include <cuda_runtime.h>
 #include <cuda.h>
+#include <omp.h>
 
 #define SIZEOFINT sizeof(int)
-#define BLOCK_DIM 32
-#define TH_DIM 32
+#define BLOCK_DIM 24
+#define TH_DIM 24
 
 const int INF = ((1 << 30) - 1);
-int n, m, padding_n, pitch_k, Dist_row_size_in_byte;
-size_t pitch;
-int up_part_size_in_block = 0, bottom_part_size_in_block = 0, up_part_height = 0, bottom_part_height = 0;
+int n, m, padding_n;
 int *Dist, *Dist_s;
-int *Dist_cuda, *Dist_cuda0, *Dist_cuda1;
+// int *Dist_cuda;
+int up_part_b_size = 0, bottom_part_b_size = 0;
+int *Dist_cuda0, *Dist_cuda1;
 
 void show_mat(int *start_p, int vertex_num){
     for(int i = 0; i < vertex_num; i++){
@@ -27,12 +28,11 @@ void show_mat(int *start_p, int vertex_num){
     }
 }
 
-void show_mat_cuda(int *start_p, int vertex_num, int padding_n, size_t pitch, int device_id){
-    int *temp = (int*)malloc(SIZEOFINT * padding_n * padding_n);
+void show_mat_cuda(int *start_p, int vertex_num, int device_id){
+    int *temp = (int*)malloc(SIZEOFINT * vertex_num * vertex_num);
     cudaSetDevice(device_id);
-    // cudaMemcpy(temp, start_p, (SIZEOFINT * vertex_num * vertex_num), cudaMemcpyDeviceToHost);
-    cudaMemcpy2D(temp, SIZEOFINT * padding_n, start_p, pitch, SIZEOFINT * padding_n, padding_n, cudaMemcpyDeviceToHost);
-    printf("---\n");
+    cudaMemcpy(temp, start_p, (SIZEOFINT * vertex_num * vertex_num), cudaMemcpyDeviceToHost);
+
     for(int i = 0; i < vertex_num; i++){
         for(int j = 0; j < vertex_num; j++){
             if(temp[i * vertex_num + j] == INF){
@@ -43,7 +43,6 @@ void show_mat_cuda(int *start_p, int vertex_num, int padding_n, size_t pitch, in
         }
         printf("\n");
     }
-    printf("---\n");
 }
 
 void malloc_Dist(){
@@ -58,39 +57,44 @@ void setDist(int i, int j, int val){Dist[i * padding_n + j] = val;}
 void setup_DistCuda(){
     // cudaMalloc((void **)&Dist_cuda, SIZEOFINT * padding_n * padding_n);
     // cudaMemcpy(Dist_cuda, Dist, (padding_n * padding_n * SIZEOFINT), cudaMemcpyHostToDevice);
-    
-    // cudaMallocPitch(&Dist_cuda, &pitch, SIZEOFINT * padding_n, padding_n);
-    // cudaMemcpy2D(Dist_cuda, pitch, Dist, SIZEOFINT * padding_n, SIZEOFINT * padding_n, padding_n, cudaMemcpyHostToDevice);
-    // pitch_k = ((int)pitch) / SIZEOFINT;
+
+    // int *Dist_cudas[2];
+    // Dist_cudas[0] = Dist_cuda0;
+    // Dist_cudas[1] = Dist_cuda1;
+    // #pragma omp parallel
+    // for(int i=0; i<2; i++){
+    //     cudaSetDevice(i);
+    //     cudaDeviceEnablePeerAccess(i, 0);
+    //     cudaMalloc((void **)&(Dist_cudas[i]), SIZEOFINT * padding_n * padding_n);
+    //     cudaMemcpy((Dist_cudas[i]), Dist, (padding_n * padding_n * SIZEOFINT), cudaMemcpyHostToDevice);
+    // }
 
     cudaStream_t stream;
     cudaStreamCreate(&stream);
 
     cudaSetDevice(0);
     cudaDeviceEnablePeerAccess(0, 0);
-    cudaMallocPitch(&Dist_cuda0, &pitch, SIZEOFINT * padding_n, padding_n);
-    cudaMemcpy2DAsync(Dist_cuda0, pitch, Dist, SIZEOFINT * padding_n, SIZEOFINT * padding_n, padding_n, cudaMemcpyHostToDevice, stream);
-    pitch_k = ((int)pitch) / SIZEOFINT;
+    cudaMalloc((void **)&Dist_cuda0, SIZEOFINT * padding_n * padding_n);
+    cudaMemcpyAsync(Dist_cuda0, Dist, (padding_n * padding_n * SIZEOFINT), cudaMemcpyHostToDevice, stream);
 
     cudaSetDevice(1);
     cudaDeviceEnablePeerAccess(1, 0);
-    cudaMallocPitch(&Dist_cuda1, &pitch, SIZEOFINT * padding_n, padding_n);
-    cudaMemcpy2D(Dist_cuda1, pitch, Dist, SIZEOFINT * padding_n, SIZEOFINT * padding_n, padding_n, cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&Dist_cuda1, SIZEOFINT * padding_n * padding_n);
+    cudaMemcpy(Dist_cuda1, Dist, (padding_n * padding_n * SIZEOFINT), cudaMemcpyHostToDevice);
 
     cudaStreamDestroy(stream);
 }
 void back_DistCuda(){
     // cudaMemcpy(Dist, Dist_cuda, (padding_n * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost);
-    // cudaMemcpy2D(Dist, SIZEOFINT * padding_n, Dist_cuda, pitch, SIZEOFINT * padding_n, padding_n, cudaMemcpyDeviceToHost);
 
     cudaStream_t stream;
     cudaStreamCreate(&stream);
 
     cudaSetDevice(0);
-    cudaMemcpy2DAsync(Dist, SIZEOFINT * padding_n, Dist_cuda0, pitch, SIZEOFINT * padding_n, padding_n, cudaMemcpyDeviceToHost, stream);
+    cudaMemcpyAsync(Dist, Dist_cuda0, (BLOCK_DIM * up_part_b_size * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost, stream);
 
     cudaSetDevice(1);
-    cudaMemcpy2D(&(Dist[up_part_height * padding_n]), SIZEOFINT * padding_n, &(Dist_cuda1[up_part_height * pitch_k]), pitch, SIZEOFINT * padding_n, (bottom_part_height), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&(Dist[BLOCK_DIM * up_part_b_size * padding_n]), &(Dist_cuda1[BLOCK_DIM * up_part_b_size * padding_n]), (BLOCK_DIM * bottom_part_b_size * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost);
 
     cudaStreamDestroy(stream);
 }
@@ -100,7 +104,6 @@ void input(char* infile) {
     fread(&n, sizeof(int), 1, file);
     fread(&m, sizeof(int), 1, file);
     padding_n = ((n + BLOCK_DIM - 1) / BLOCK_DIM) * BLOCK_DIM;
-    Dist_row_size_in_byte = SIZEOFINT * padding_n;
     malloc_Dist();
 
     for (int i = 0; i < padding_n; i++) {
@@ -158,7 +161,7 @@ __device__ void block_calc(int* C, int* A, int* B, int bj, int bi) {
 
 __forceinline__
 __device__ void block_calc_rev_async(int* C, int* A, int* B, int bj, int bi) {
-    #pragma unroll
+    #pragma unroll 10
     for (int k = 0; k < BLOCK_DIM; k++) {
         int sum0 = A[k*BLOCK_DIM + bi] + B[k*BLOCK_DIM + bj];
         // int sum1 = A[k*BLOCK_DIM + (bi + TH_DIM)] + B[k*BLOCK_DIM + bj];
@@ -194,7 +197,6 @@ __global__ void floyd_warshall_block_kernel_phase1(int n, int k, int* graph) {
     // graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
     // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
 }
-
 
 __global__ void floyd_warshall_block_kernel_phase2(int n, int k, int* graph) {
     // BlockDim is one dimensional (Straight along diagonal)
@@ -243,46 +245,6 @@ __global__ void floyd_warshall_block_kernel_phase2(int n, int k, int* graph) {
     // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
     // graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
     // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
-}
-
-
-__global__ void floyd_warshall_block_kernel_phase3(int n, int k, int* graph, int start_x, int start_y) {
-    // BlockDim is one dimensional (Straight along diagonal)
-    // Blocks themselves are two dimensional
-    const unsigned int j = start_x + blockIdx.x;
-    const unsigned int i = start_y + blockIdx.y;
-    const unsigned int bi = threadIdx.y;
-    const unsigned int bj = threadIdx.x;
-
-    __shared__ int A[BLOCK_DIM * BLOCK_DIM];
-    __shared__ int B[BLOCK_DIM * BLOCK_DIM];
-    __shared__ int C[BLOCK_DIM * BLOCK_DIM];
-
-    C[bi*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)];
-    // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
-    // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
-    // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))];
-
-    A[bj*BLOCK_DIM + bi] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
-    // A[bj*BLOCK_DIM + (bi + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
-    // A[(bj + TH_DIM)*BLOCK_DIM + bi] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
-    // A[(bj + TH_DIM)*BLOCK_DIM + (bi + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
-
-    B[bi*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)];
-    // B[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
-    // B[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
-    // B[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))];
-
-    __syncthreads();
-
-    block_calc_rev_async(C, A, B, bi, bj);
-
-    __syncthreads();
-
-    graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)] = C[bi*BLOCK_DIM + bj];
-    // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
-    // graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
-    // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
 }
 
 __global__ void floyd_warshall_block_kernel_phase21(int n, int k, int* graph, int start) {
@@ -352,87 +314,180 @@ __global__ void floyd_warshall_block_kernel_phase22(int n, int k, int* graph, in
     // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
 }
 
-void block_FW_cuda() {
-    // int round = padding_n / B;
+__global__ void floyd_warshall_block_kernel_phase3(int n, int k, int* graph, int start_x, int start_y) {
+    // BlockDim is one dimensional (Straight along diagonal)
+    // Blocks themselves are two dimensional
+    const unsigned int i = start_y + blockIdx.y;
+    const unsigned int j = start_x + blockIdx.x;
+    const unsigned int bi = threadIdx.y;
+    const unsigned int bj = threadIdx.x;
+
+    __shared__ int A[BLOCK_DIM * BLOCK_DIM];
+    __shared__ int B[BLOCK_DIM * BLOCK_DIM];
+    __shared__ int C[BLOCK_DIM * BLOCK_DIM];
+
+    C[bi*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)];
+    // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
+    // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+    // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+
+    A[bj*BLOCK_DIM + bi] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
+    // A[bj*BLOCK_DIM + (bi + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
+    // A[(bj + TH_DIM)*BLOCK_DIM + bi] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+    // A[(bj + TH_DIM)*BLOCK_DIM + (bi + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+
+    B[bi*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)];
+    // B[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
+    // B[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+    // B[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+
+    __syncthreads();
+
+    block_calc_rev_async(C, A, B, bi, bj);
+
+    __syncthreads();
+
+    graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)] = C[bi*BLOCK_DIM + bj];
+    // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
+    // graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
+    // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
+}
+void block_FW_cuda1() {
     const int blocks = padding_n / BLOCK_DIM;
+    const int row_b_size = BLOCK_DIM * padding_n;
+    up_part_b_size = (blocks+1)/2;
+    bottom_part_b_size = blocks/2;
+    // printf("Up Blocks: %d, Bottom Blocks: %d\n", up_part_b_size, bottom_part_b_size);
+
     dim3 block_dim(TH_DIM, TH_DIM, 1);
-    dim3 phase3_grid(blocks, blocks, 1);
+    dim3 phase31_grid(blocks, up_part_b_size, 1);
+    dim3 phase32_grid(blocks, bottom_part_b_size, 1);
 
-    // for (int k = 0; k < blocks; k++) {
-    //     floyd_warshall_block_kernel_phase1<<<1, block_dim>>>(pitch_k, k, Dist_cuda);
-    //     floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(pitch_k, k, Dist_cuda);
-    //     floyd_warshall_block_kernel_phase3<<<phase3_grid, block_dim>>>(pitch_k, k, Dist_cuda, 0, 0);
-    // }
-
-    const int row_size_pitchk = BLOCK_DIM * pitch_k;
-    up_part_size_in_block = (blocks+1)/2;
-    bottom_part_size_in_block = blocks/2;
-    up_part_height = BLOCK_DIM * up_part_size_in_block;
-    bottom_part_height = BLOCK_DIM * bottom_part_size_in_block;
-
-    dim3 phase31_grid(blocks, up_part_size_in_block, 1);
-    dim3 phase32_grid(blocks, bottom_part_size_in_block, 1);
-    // printf("Up Blocks: %d, Bottom Blocks: %d\n", up_part_size_in_block, bottom_part_size_in_block);
+    // cudaStream_t stream;
+    // cudaStreamCreate(&stream);
 
     for (int k = 0; k < blocks; k++) {
         int next_k = k + 1;
         // Phase 1
         cudaSetDevice(0);
-        floyd_warshall_block_kernel_phase1<<<1, block_dim>>>(pitch_k, k, Dist_cuda0);
+        floyd_warshall_block_kernel_phase1<<<1, block_dim, 0>>>(padding_n, k, Dist_cuda0);
 
         cudaSetDevice(1);
-        floyd_warshall_block_kernel_phase1<<<1, block_dim>>>(pitch_k, k, Dist_cuda1);
+        floyd_warshall_block_kernel_phase1<<<1, block_dim, 0>>>(padding_n, k, Dist_cuda1);
 
         // Phase 2
         cudaStream_t stream;
         cudaStreamCreate(&stream);
-
+        
         cudaSetDevice(0);
-        // floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(pitch_k, k, Dist_cuda0);
-        floyd_warshall_block_kernel_phase21<<<up_part_size_in_block, block_dim, 0>>>(pitch_k, k, Dist_cuda0, 0);
+        // floyd_warshall_block_kernel_phase2<<<blocks, block_dim, 0>>>(padding_n, k, Dist_cuda0);
+        floyd_warshall_block_kernel_phase21<<<up_part_b_size, block_dim, 0>>>(padding_n, k, Dist_cuda0, 0);
 
         cudaSetDevice(1);
-        // floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(pitch_k, k, Dist_cuda1);
-        floyd_warshall_block_kernel_phase21<<<bottom_part_size_in_block, block_dim, 0>>>(pitch_k, k, Dist_cuda1, up_part_size_in_block);
+        // floyd_warshall_block_kernel_phase2<<<blocks, block_dim, 0>>>(padding_n, k, Dist_cuda1);
+        floyd_warshall_block_kernel_phase21<<<bottom_part_b_size, block_dim, 0>>>(padding_n, k, Dist_cuda1, up_part_b_size);
 
-        // Calculate rows of phase 2
-        if(k < up_part_size_in_block){
+        if(next_k < up_part_b_size){
             cudaSetDevice(0);
-            floyd_warshall_block_kernel_phase22<<<blocks, block_dim, 0, stream>>>(pitch_k, k, Dist_cuda0, 0);
+            floyd_warshall_block_kernel_phase22<<<blocks, block_dim, 0, stream>>>(padding_n, k, Dist_cuda0, 0);
         }else{
             cudaSetDevice(1);
-            floyd_warshall_block_kernel_phase22<<<blocks, block_dim, 0, stream>>>(pitch_k, k, Dist_cuda1, 0);
+            floyd_warshall_block_kernel_phase22<<<blocks, block_dim, 0, stream>>>(padding_n, k, Dist_cuda1, 0);
         }
         cudaStreamDestroy(stream);
 
         // Phase 3
         cudaSetDevice(0);
-        floyd_warshall_block_kernel_phase3<<<phase31_grid, block_dim>>>(pitch_k, k, Dist_cuda0, 0, 0);
+        floyd_warshall_block_kernel_phase3<<<phase31_grid, block_dim, 0>>>(padding_n, k, Dist_cuda0, 0, 0);
 
         cudaSetDevice(1);
-        floyd_warshall_block_kernel_phase3<<<phase32_grid, block_dim>>>(pitch_k, k, Dist_cuda1, 0, up_part_size_in_block);
+        floyd_warshall_block_kernel_phase3<<<phase32_grid, block_dim, 0>>>(padding_n, k, Dist_cuda1, 0, up_part_b_size);
 
         // Transfer data to another GPU
-        if(next_k < up_part_size_in_block){
+        // cudaDeviceSynchronize();
+        if(next_k < up_part_b_size){
             // printf("Up K: %d, Next_K: %d, Blocks: %d\n", k, next_k, blocks);
-            cudaMemcpyPeer(&(Dist_cuda1[next_k * row_size_pitchk]), 1, &(Dist_cuda0[next_k * row_size_pitchk]), 0, SIZEOFINT * row_size_pitchk); 
-        }else if(next_k < blocks){
+            cudaMemcpyPeer(&(Dist_cuda1[next_k * row_b_size]), 1, &(Dist_cuda0[next_k * row_b_size]), 0, SIZEOFINT * row_b_size); 
+        }else if(up_part_b_size <= next_k && next_k < blocks){
             // printf("Down K: %d, Next_K: %d, Blocks: %d\n", k, next_k, blocks);
-            cudaMemcpyPeer(&(Dist_cuda0[next_k * row_size_pitchk]), 0, &(Dist_cuda1[next_k * row_size_pitchk]), 1, SIZEOFINT * row_size_pitchk); 
+            cudaMemcpyPeer(&(Dist_cuda0[next_k * row_b_size]), 0, &(Dist_cuda1[next_k * row_b_size]), 1, SIZEOFINT * row_b_size); 
         }
+    }
+    // cudaStreamDestroy(stream);
+}
+
+void block_FW_cuda2() {
+    const int blocks = padding_n / BLOCK_DIM;
+    const int row_b_size = BLOCK_DIM * padding_n;
+    up_part_b_size = (blocks+1)/2;
+    bottom_part_b_size = blocks/2;
+    // printf("Up Blocks: %d, Bottom Blocks: %d\n", up_part_b_size, bottom_part_b_size);
+
+    dim3 block_dim(TH_DIM, TH_DIM, 1);
+    dim3 phase31_grid(blocks, up_part_b_size, 1);
+    dim3 phase32_grid(blocks, bottom_part_b_size, 1);
+
+    for (int k = 0; k < blocks; k++) {
+        if(k < up_part_b_size){
+            // Stage 1
+            // printf("Round %d Before Copy\n", k);
+            // printf("Matrix 0\n");
+            // show_mat_cuda(Dist_cuda0, padding_n, 0);
+            // printf("Matrix 1\n");
+            // show_mat_cuda(Dist_cuda1, padding_n, 1);
+            cudaSetDevice(0);
+            floyd_warshall_block_kernel_phase1<<<1, block_dim>>>(padding_n, k, Dist_cuda0);
+            floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(padding_n, k, Dist_cuda0);
+            cudaMemcpyPeer(&(Dist_cuda1[k * row_b_size]), 1, &(Dist_cuda0[k * row_b_size]), 0, SIZEOFINT * row_b_size); 
+            // printf("%d. %d ~ %d Copy Done\n", k, k * row_b_size,  (k * row_b_size) + (row_b_size), row_b_size);
+
+            cudaDeviceSynchronize();
+
+            cudaSetDevice(1);
+            // printf("After Copy\n");
+            // printf("Matrix 0\n");
+            // show_mat_cuda(Dist_cuda0, padding_n, 0);
+            // printf("Matrix 1\n");
+            // show_mat_cuda(Dist_cuda1, padding_n, 1);
+            // printf("Down Part\n------------\n");
+            floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(padding_n, k, Dist_cuda1);
+        }else{
+            // Stage 2
+            cudaSetDevice(1);
+            floyd_warshall_block_kernel_phase1<<<1, block_dim>>>(padding_n, k, Dist_cuda1);
+            floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(padding_n, k, Dist_cuda1);
+            cudaMemcpyPeer(&(Dist_cuda0[k * row_b_size]), 0, &(Dist_cuda1[k * row_b_size]), 1, SIZEOFINT * row_b_size); 
+            // printf("%d. %d ~ %d Copy Done\n", k, k * row_b_size,  (k * row_b_size) + (row_b_size), row_b_size);
+
+            cudaDeviceSynchronize();
+
+            cudaSetDevice(0);
+            // printf("Up Part\n------------\n");
+            floyd_warshall_block_kernel_phase2<<<blocks, block_dim>>>(padding_n, k, Dist_cuda0);
+        }
+
+        // Phase 3
+        cudaSetDevice(0);
+        floyd_warshall_block_kernel_phase3<<<phase31_grid, block_dim>>>(padding_n, k, Dist_cuda0, 0, 0);
+
+        cudaSetDevice(1);
+        floyd_warshall_block_kernel_phase3<<<phase32_grid, block_dim>>>(padding_n, k, Dist_cuda1, 0, up_part_b_size);
     }
 }
 
 int main(int argc, char* argv[]) {
     input(argv[1]);
-    // show_mat(getDistAddr(0, 0), n);
+    // show_mat(getDistAddr(0, 0), padding_n);
+    // printf("Original Matix\n");
     setup_DistCuda();
-    // printf("Vertice: %d, Edge: %d, B: %d, Padding: %d\n", n, m, BLOCK_DIM, padding_n);
-    block_FW_cuda();
+    // printf("Vertice: %d, Edge: %d, BLOCK_DIM: %d\n", n, m, BLOCK_DIM);
+    block_FW_cuda1();
     back_DistCuda();
     // show_mat(getDistAddr(0, 0), n);
     
     output(argv[2]);
-    // show_mat(getDistAddr(0, 0), n);
+    // show_mat(Dist, padding_n);
+    // printf("------------\n");
+    // show_mat(Dist_s, n);
     return 0;
 }

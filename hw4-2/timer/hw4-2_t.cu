@@ -14,6 +14,28 @@ int up_part_size_in_block = 0, bottom_part_size_in_block = 0, up_part_height = 0
 int *Dist, *Dist_s;
 int *Dist_cuda, *Dist_cuda0, *Dist_cuda1;
 
+// CUDA Timer
+// 0: Computing, 1: H2D, 2: D2H, 3: I/O Read, 4: I/O Write
+const int timer_len = 5;
+cudaEvent_t start[timer_len], stop[timer_len];
+
+void show_time(){
+    float sum = 0;
+    printf("%d,\t", n);
+    for(int i=0; i<timer_len-1; i++){
+        float t = 0;
+        cudaEventSynchronize(stop[i]);
+        cudaEventElapsedTime(&t, start[i], stop[i]);
+        printf("%f,\t", t);
+        sum += t;
+    }
+    float t = 0;
+    cudaEventSynchronize(stop[timer_len-1]);
+    cudaEventElapsedTime(&t, start[timer_len-1], stop[timer_len-1]);
+    sum += t;
+    printf("%f, %f\n", t, sum);
+}
+
 void show_mat(int *start_p, int vertex_num){
     for(int i = 0; i < vertex_num; i++){
         for(int j = 0; j < vertex_num; j++){
@@ -56,13 +78,14 @@ int *getDistAddr(int i, int j){return &(Dist[i * padding_n + j]);}
 void setDist(int i, int j, int val){Dist[i * padding_n + j] = val;}
 
 void setup_DistCuda(){
+    cudaEventRecord(start[1]);
     // cudaMalloc((void **)&Dist_cuda, SIZEOFINT * padding_n * padding_n);
     // cudaMemcpy(Dist_cuda, Dist, (padding_n * padding_n * SIZEOFINT), cudaMemcpyHostToDevice);
     
     // cudaMallocPitch(&Dist_cuda, &pitch, SIZEOFINT * padding_n, padding_n);
     // cudaMemcpy2D(Dist_cuda, pitch, Dist, SIZEOFINT * padding_n, SIZEOFINT * padding_n, padding_n, cudaMemcpyHostToDevice);
     // pitch_k = ((int)pitch) / SIZEOFINT;
-
+    
     cudaStream_t stream;
     cudaStreamCreate(&stream);
 
@@ -78,24 +101,28 @@ void setup_DistCuda(){
     cudaMemcpy2D(Dist_cuda1, pitch, Dist, SIZEOFINT * padding_n, SIZEOFINT * padding_n, padding_n, cudaMemcpyHostToDevice);
 
     cudaStreamDestroy(stream);
+    cudaEventRecord(stop[1]);
 }
 void back_DistCuda(){
+    cudaEventRecord(start[2]);
     // cudaMemcpy(Dist, Dist_cuda, (padding_n * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost);
     // cudaMemcpy2D(Dist, SIZEOFINT * padding_n, Dist_cuda, pitch, SIZEOFINT * padding_n, padding_n, cudaMemcpyDeviceToHost);
 
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    // cudaStream_t stream;
+    // cudaStreamCreate(&stream);
 
     cudaSetDevice(0);
-    cudaMemcpy2DAsync(Dist, SIZEOFINT * padding_n, Dist_cuda0, pitch, SIZEOFINT * padding_n, padding_n, cudaMemcpyDeviceToHost, stream);
+    cudaMemcpy2D(Dist, SIZEOFINT * padding_n, Dist_cuda0, pitch, SIZEOFINT * padding_n, padding_n, cudaMemcpyDeviceToHost);
 
     cudaSetDevice(1);
     cudaMemcpy2D(&(Dist[up_part_height * padding_n]), SIZEOFINT * padding_n, &(Dist_cuda1[up_part_height * pitch_k]), pitch, SIZEOFINT * padding_n, (bottom_part_height), cudaMemcpyDeviceToHost);
 
-    cudaStreamDestroy(stream);
+    // cudaStreamDestroy(stream);
+    cudaEventRecord(stop[2]);
 }
 
 void input(char* infile) {
+    cudaEventRecord(start[3], 0);
     FILE* file = fopen(infile, "rb");
     fread(&n, sizeof(int), 1, file);
     fread(&m, sizeof(int), 1, file);
@@ -123,6 +150,7 @@ void input(char* infile) {
     }
     // cudaMemcpy(Dist_cuda, Dist, (n * n * SIZEOFINT), cudaMemcpyHostToDevice);
     fclose(file);
+    cudaEventRecord(stop[3], 0);
 }
 
 void output(char* outFileName) {
@@ -353,7 +381,7 @@ __global__ void floyd_warshall_block_kernel_phase22(int n, int k, int* graph, in
 }
 
 void block_FW_cuda() {
-    // int round = padding_n / B;
+    
     const int blocks = padding_n / BLOCK_DIM;
     dim3 block_dim(TH_DIM, TH_DIM, 1);
     dim3 phase3_grid(blocks, blocks, 1);
@@ -373,7 +401,8 @@ void block_FW_cuda() {
     dim3 phase31_grid(blocks, up_part_size_in_block, 1);
     dim3 phase32_grid(blocks, bottom_part_size_in_block, 1);
     // printf("Up Blocks: %d, Bottom Blocks: %d\n", up_part_size_in_block, bottom_part_size_in_block);
-
+    
+    cudaEventRecord(start[0], 0);
     for (int k = 0; k < blocks; k++) {
         int next_k = k + 1;
         // Phase 1
@@ -421,6 +450,7 @@ void block_FW_cuda() {
             cudaMemcpyPeer(&(Dist_cuda0[next_k * row_size_pitchk]), 0, &(Dist_cuda1[next_k * row_size_pitchk]), 1, SIZEOFINT * row_size_pitchk); 
         }
     }
+    cudaEventRecord(stop[0], 0);
 }
 
 int main(int argc, char* argv[]) {
@@ -434,5 +464,6 @@ int main(int argc, char* argv[]) {
     
     output(argv[2]);
     // show_mat(getDistAddr(0, 0), n);
+    show_time();
     return 0;
 }

@@ -1,5 +1,5 @@
 # !/bin/bash
-program="hw4-2"
+program=${1}
 
 echo -e "Setting up Environment..."
 mkdir out
@@ -7,15 +7,15 @@ rm ./execs/${program}
 rm ./out/c*
 
 echo -e "Compiling..."
-bash compile.sh
+bash compile.sh ${program}
 
 # tc_dir='/home/pp20/share/hw4-1/cases/'
 tc_dir='./sample/s_cases/'
 # runner='srun -n 1 --gres=gpu:1'
 runner=''
 # tcs=(0 1)
-tcs=(0 1 2 3 4 5 6 7 15 17)
-# tcs=(0 1 2 3 4 5 6 7 15)
+tcs=(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19)
+# tcs=(0 1 2 3 4)
 # tcs=(0 17 18)
 # tcs=(0 21)
 tc_num=${#tcs[@]}
