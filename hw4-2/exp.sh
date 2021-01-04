@@ -21,10 +21,10 @@ mv ${program} ../execs/${program}
 cd ..
 
 # Testcases
-tcs=('c10.1' 'c15.1' 'c17.1' 'c18.1' 'c19.1')
+tcs=('c07.1' 'c10.1' 'c15.1' 'c19.1' 'c18.1' )
 tc_num=${#tcs[@]}
 
-echo "verteice, computing, H2D, D2H, I/O Read, I/O Write, execution time" >> ${res}
+echo "verteice, computing, H2D, D2H, I/O Read, I/O Write, Communication, execution time" >> ${res}
 for ((idx=0;idx<${tc_num};idx++))
 do
     echo -e "${COLOR_GREEN}${idx}-Testcase ${tcs[idx]}${COLOR_REST}"

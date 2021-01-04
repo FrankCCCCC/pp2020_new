@@ -15,9 +15,29 @@ int *Dist, *Dist_s;
 int *Dist_cuda, *Dist_cuda0, *Dist_cuda1;
 
 // CUDA Timer
-// 0: Computing, 1: H2D, 2: D2H, 3: I/O Read, 4: I/O Write
-const int timer_len = 5;
+// 0: Computing, 1: H2D, 2: D2H, 3: I/O Read, 4: I/O Write, 5: Communication
+const int timer_len = 6;
 cudaEvent_t start[timer_len], stop[timer_len];
+
+void init_cuda_timer(){
+    cudaEventCreate(&(start[0]), 0);
+    cudaEventCreate(&(stop[0]), 0);
+    for(int i=0; i<timer_len; i++){
+        cudaEventCreate(&(start[i]), 0);
+        cudaEventCreate(&(stop[i]), 0);
+    }
+}
+
+void eventRecordStart(int i){
+    cudaEventCreate(&(start[i]), 0);
+    cudaEventCreate(&(stop[i]), 0);
+    cudaEventRecord(start[i]);
+}
+
+void eventRecordStop(int i){
+    cudaEventRecord(stop[i]);
+    // cudaEventSynchronize(stop[i]);
+}
 
 void show_time(){
     float sum = 0;
@@ -78,7 +98,7 @@ int *getDistAddr(int i, int j){return &(Dist[i * padding_n + j]);}
 void setDist(int i, int j, int val){Dist[i * padding_n + j] = val;}
 
 void setup_DistCuda(){
-    cudaEventRecord(start[1]);
+    eventRecordStart(1);
     // cudaMalloc((void **)&Dist_cuda, SIZEOFINT * padding_n * padding_n);
     // cudaMemcpy(Dist_cuda, Dist, (padding_n * padding_n * SIZEOFINT), cudaMemcpyHostToDevice);
     
@@ -101,10 +121,12 @@ void setup_DistCuda(){
     cudaMemcpy2D(Dist_cuda1, pitch, Dist, SIZEOFINT * padding_n, SIZEOFINT * padding_n, padding_n, cudaMemcpyHostToDevice);
 
     cudaStreamDestroy(stream);
-    cudaEventRecord(stop[1]);
+    cudaDeviceSynchronize();
+    eventRecordStop(1);
+    // cudaEventSynchronize(stop[1]);
 }
 void back_DistCuda(){
-    cudaEventRecord(start[2]);
+    eventRecordStart(2);
     // cudaMemcpy(Dist, Dist_cuda, (padding_n * padding_n * SIZEOFINT), cudaMemcpyDeviceToHost);
     // cudaMemcpy2D(Dist, SIZEOFINT * padding_n, Dist_cuda, pitch, SIZEOFINT * padding_n, padding_n, cudaMemcpyDeviceToHost);
 
@@ -118,11 +140,11 @@ void back_DistCuda(){
     cudaMemcpy2D(&(Dist[up_part_height * padding_n]), SIZEOFINT * padding_n, &(Dist_cuda1[up_part_height * pitch_k]), pitch, SIZEOFINT * padding_n, (bottom_part_height), cudaMemcpyDeviceToHost);
 
     // cudaStreamDestroy(stream);
-    cudaEventRecord(stop[2]);
+    eventRecordStop(2);
 }
 
 void input(char* infile) {
-    cudaEventRecord(start[3], 0);
+    eventRecordStart(3);
     FILE* file = fopen(infile, "rb");
     fread(&n, sizeof(int), 1, file);
     fread(&m, sizeof(int), 1, file);
@@ -150,10 +172,11 @@ void input(char* infile) {
     }
     // cudaMemcpy(Dist_cuda, Dist, (n * n * SIZEOFINT), cudaMemcpyHostToDevice);
     fclose(file);
-    cudaEventRecord(stop[3], 0);
+    eventRecordStop(3);
 }
 
 void output(char* outFileName) {
+    eventRecordStart(4);
     FILE* outfile = fopen(outFileName, "w");
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
@@ -166,6 +189,7 @@ void output(char* outFileName) {
     }
     fwrite(Dist_s, sizeof(int), n * n, outfile);
     fclose(outfile);
+    eventRecordStop(4);
 }
 
 __forceinline__
@@ -381,7 +405,6 @@ __global__ void floyd_warshall_block_kernel_phase22(int n, int k, int* graph, in
 }
 
 void block_FW_cuda() {
-    
     const int blocks = padding_n / BLOCK_DIM;
     dim3 block_dim(TH_DIM, TH_DIM, 1);
     dim3 phase3_grid(blocks, blocks, 1);
@@ -402,7 +425,7 @@ void block_FW_cuda() {
     dim3 phase32_grid(blocks, bottom_part_size_in_block, 1);
     // printf("Up Blocks: %d, Bottom Blocks: %d\n", up_part_size_in_block, bottom_part_size_in_block);
     
-    cudaEventRecord(start[0], 0);
+    eventRecordStart(0);
     for (int k = 0; k < blocks; k++) {
         int next_k = k + 1;
         // Phase 1
@@ -442,6 +465,7 @@ void block_FW_cuda() {
         floyd_warshall_block_kernel_phase3<<<phase32_grid, block_dim>>>(pitch_k, k, Dist_cuda1, 0, up_part_size_in_block);
 
         // Transfer data to another GPU
+        eventRecordStart(5);
         if(next_k < up_part_size_in_block){
             // printf("Up K: %d, Next_K: %d, Blocks: %d\n", k, next_k, blocks);
             cudaMemcpyPeer(&(Dist_cuda1[next_k * row_size_pitchk]), 1, &(Dist_cuda0[next_k * row_size_pitchk]), 0, SIZEOFINT * row_size_pitchk); 
@@ -449,16 +473,30 @@ void block_FW_cuda() {
             // printf("Down K: %d, Next_K: %d, Blocks: %d\n", k, next_k, blocks);
             cudaMemcpyPeer(&(Dist_cuda0[next_k * row_size_pitchk]), 0, &(Dist_cuda1[next_k * row_size_pitchk]), 1, SIZEOFINT * row_size_pitchk); 
         }
+        eventRecordStop(5);
     }
-    cudaEventRecord(stop[0], 0);
+    eventRecordStop(0);
 }
 
 int main(int argc, char* argv[]) {
+    // init_cuda_timer();
     input(argv[1]);
     // show_mat(getDistAddr(0, 0), n);
+
+    // float t = 0;
+    // cudaEventCreate(&(start[1]), 0);
+    // cudaEventCreate(&(stop[1]), 0);
+    // cudaEventRecord(start[1]);
     setup_DistCuda();
+    // for(int i=0; i<1000; i++){}
+    // cudaEventRecord(stop[1]);
+    // cudaEventSynchronize(stop[1]);
+    // cudaEventElapsedTime(&t, start[1], stop[1]);
+    // printf("KK: %d\n", t);
+
     // printf("Vertice: %d, Edge: %d, B: %d, Padding: %d\n", n, m, BLOCK_DIM, padding_n);
     block_FW_cuda();
+
     back_DistCuda();
     // show_mat(getDistAddr(0, 0), n);
     

@@ -5,7 +5,7 @@ LDFLAGS  := -lm
 DEPS0 = ./libs/timer/timer.c
 DEPS1 = ./libs/timer/timer.h
 
-TARGETS = hw4-2_t
+TARGETS = hw4-2_t hw4-1_pitch_32_t
 
 .PHONY: all
 all: $(TARGETS)
