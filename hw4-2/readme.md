@@ -1,27 +1,8 @@
 # Records
 Best:
-
-- hw4-2_async_24
-
-c01.1    0.52   accepted
-c02.1    0.52   accepted
-c04.1    1.17   accepted
-c03.1    0.42   accepted
-c05.1    3.57   accepted
-c06.1   60.01   time limit exceeded:  {timeout}
-p31k1   57.28   accepted
-c07.1   80.00   time limit exceeded:  {timeout}
-p32k1   66.95   time limit exceeded:  {timeout}
-p33k1   70.00   time limit exceeded:  {timeout}
-p34k1   70.00   time limit exceeded:  {timeout}
-p36k1   70.00   time limit exceeded:  {timeout}
-p35k1   70.00   time limit exceeded:  {timeout}
-
-- 
-
-# Parameters
-
-```tmux capture-pane -pS -1000000 > file.out```
+- BLocking Factor: 64
+- Block Dimension: 32
+- With I/O imporvement, Pitch Memory, inline relax function, 2D shared memory
 
 # References
 - [hw4-2 Scoreboard](https://apollo.cs.nthu.edu.tw/pp20/scoreboard/hw4-2/)
