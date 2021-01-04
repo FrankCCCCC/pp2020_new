@@ -6,7 +6,7 @@
 
 #define SIZEOFINT 4
 
-const int vertex_num = 5861;
+const int vertex_num = 6000;
 const int weight_density = 95;
 int w_buf[vertex_num * vertex_num * 3 + 2] = {0};
 int edge_num = 0;

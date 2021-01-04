@@ -138,12 +138,14 @@ void input(char* infile) {
     }
 
     int pair[3];
+    int *edges_buf = (int*)malloc(3 * m * SIZEOFINT);
+    fread(edges_buf, sizeof(int), 3 * m, file);
     for (int i = 0; i < m; i++) {
-        fread(pair, sizeof(int), 3, file);
-        setDist(pair[0], pair[1], pair[2]);
+        // fread(pair, sizeof(int), 3, file);
+        setDist(edges_buf[3 * i], edges_buf[3 * i + 1], edges_buf[3 * i + 2]);
         // Dist[pair[0]][pair[1]] = pair[2];
     }
-    // cudaMemcpy(Dist_cuda, Dist, (n * n * SIZEOFINT), cudaMemcpyHostToDevice);
+    free(edges_buf);
     fclose(file);
     eventRecordStop(3);
 }

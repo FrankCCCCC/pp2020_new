@@ -17,6 +17,7 @@ int *Dist_cuda, *Dist_cuda0, *Dist_cuda1;
 // CUDA Timer
 // 0: Computing, 1: H2D, 2: D2H, 3: I/O Read, 4: I/O Write, 5: Communication
 const int timer_len = 6;
+float accum_time[timer_len] = {0};
 cudaEvent_t start[timer_len], stop[timer_len];
 
 void init_cuda_timer(){
@@ -35,25 +36,28 @@ void eventRecordStart(int i){
 }
 
 void eventRecordStop(int i){
+    float t = 0;
     cudaEventRecord(stop[i]);
-    // cudaEventSynchronize(stop[i]);
+    cudaEventSynchronize(stop[i]);
+    cudaEventElapsedTime(&t, start[i], stop[i]);
+    accum_time[i] += t;
 }
 
 void show_time(){
     float sum = 0;
     printf("%d,\t", n);
     for(int i=0; i<timer_len-1; i++){
-        float t = 0;
-        cudaEventSynchronize(stop[i]);
-        cudaEventElapsedTime(&t, start[i], stop[i]);
-        printf("%f,\t", t);
-        sum += t;
+        // float t = 0;
+        // cudaEventSynchronize(stop[i]);
+        // cudaEventElapsedTime(&t, start[i], stop[i]);
+        printf("%f,\t", accum_time[i]);
+        sum += accum_time[i];
     }
-    float t = 0;
-    cudaEventSynchronize(stop[timer_len-1]);
-    cudaEventElapsedTime(&t, start[timer_len-1], stop[timer_len-1]);
-    sum += t;
-    printf("%f, %f\n", t, sum);
+    // float t = 0;
+    // cudaEventSynchronize(stop[timer_len-1]);
+    // cudaEventElapsedTime(&t, start[timer_len-1], stop[timer_len-1]);
+    sum += accum_time[timer_len-1];
+    printf("%f, %f\n", accum_time[timer_len-1], sum);
 }
 
 void show_mat(int *start_p, int vertex_num){
@@ -165,12 +169,13 @@ void input(char* infile) {
     }
 
     int pair[3];
+    int *edges_buf = (int*)malloc(3 * m * SIZEOFINT);
+    fread(edges_buf, sizeof(int), 3 * m, file);
     for (int i = 0; i < m; i++) {
-        fread(pair, sizeof(int), 3, file);
-        setDist(pair[0], pair[1], pair[2]);
-        // Dist[pair[0]][pair[1]] = pair[2];
+        // fread(pair, sizeof(int), 3, file);
+        setDist(edges_buf[3 * i], edges_buf[3 * i + 1], edges_buf[3 * i + 2]);
     }
-    // cudaMemcpy(Dist_cuda, Dist, (n * n * SIZEOFINT), cudaMemcpyHostToDevice);
+    free(edges_buf);
     fclose(file);
     eventRecordStop(3);
 }

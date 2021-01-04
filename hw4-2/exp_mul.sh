@@ -1,3 +1,4 @@
+# Measure the time distribution of hw4-2_t, 2 GPU version
 # !/bin/sh
 COLOR_REST='\e[0m'
 COLOR_GREEN='\e[0;32m'
@@ -21,7 +22,7 @@ mv ${program} ../execs/${program}
 cd ..
 
 # Testcases
-tcs=('c07.1' 'c10.1' 'c15.1' 'c19.1' 'c18.1' )
+tcs=('c07.1' 'c10.1' 'c15.1' 'c19.1' 'c18.1' 'mycase6000.in' 'mycase9000.in')
 tc_num=${#tcs[@]}
 
 echo "verteice, computing, H2D, D2H, I/O Read, I/O Write, Communication, execution time" >> ${res}

@@ -4,8 +4,8 @@
 #include <cuda.h>
 
 #define SIZEOFINT sizeof(int)
-#define BLOCK_DIM 24
-#define TH_DIM 24
+#define BLOCK_DIM 64
+#define TH_DIM 32
 
 const int INF = ((1 << 30) - 1);
 int n, m, padding_n;
@@ -63,12 +63,13 @@ void input(char* infile) {
     }
 
     int pair[3];
+    int *edges_buf = (int*)malloc(3 * m * SIZEOFINT);
+    fread(edges_buf, sizeof(int), 3 * m, file);
     for (int i = 0; i < m; i++) {
-        fread(pair, sizeof(int), 3, file);
-        setDist(pair[0], pair[1], pair[2]);
-        // Dist[pair[0]][pair[1]] = pair[2];
+        // fread(pair, sizeof(int), 3, file);
+        setDist(edges_buf[3 * i], edges_buf[3 * i + 1], edges_buf[3 * i + 2]);
     }
-    // cudaMemcpy(Dist_cuda, Dist, (n * n * SIZEOFINT), cudaMemcpyHostToDevice);
+    free(edges_buf);
     fclose(file);
 }
 
@@ -123,35 +124,36 @@ __global__ void floyd_warshall_block_kernel_phase1(int n, int k, int* graph) {
     const unsigned int bi = threadIdx.y;
     const unsigned int bj = threadIdx.x;
 
-    __shared__ int C[BLOCK_DIM * BLOCK_DIM];
+    __shared__ int C[BLOCK_DIM][BLOCK_DIM];
 
     // Transfer to temp shared arrays
-    C[bi*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
-    // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
-    // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
-    // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+    C[bi][bj] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
+    C[(bi + TH_DIM)][bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
+    C[bi][(bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+    C[(bi + TH_DIM)][(bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
 
     __syncthreads();
     
     // block_calc(C, C, C, bi, bj);
+    #pragma unroll
     for (int k = 0; k < BLOCK_DIM; k++) {
-        int sum0 = C[bi*BLOCK_DIM + k] + C[k*BLOCK_DIM + bj];
-        // int sum1 = C[(bi + TH_DIM)*BLOCK_DIM + k] + C[k*BLOCK_DIM + bj];
-        // int sum2 = C[bi*BLOCK_DIM + k] + C[k*BLOCK_DIM + (bj + TH_DIM)];
-        // int sum3 = C[(bi + TH_DIM)*BLOCK_DIM + k] + C[k*BLOCK_DIM + (bj + TH_DIM)];
+        int sum0 = C[bi][k] + C[k][bj];
+        int sum1 = C[(bi + TH_DIM)][k] + C[k][bj];
+        int sum2 = C[bi][k] + C[k][(bj + TH_DIM)];
+        int sum3 = C[(bi + TH_DIM)][k] + C[k][(bj + TH_DIM)];
 
-        C[bi*BLOCK_DIM + bj] = min(C[bi*BLOCK_DIM + bj], sum0);
-        // C[(bi + TH_DIM)*BLOCK_DIM + bj] = min(C[(bi + TH_DIM)*BLOCK_DIM + bj], sum1);
-        // C[bi*BLOCK_DIM + (bj + TH_DIM)] = min(C[bi*BLOCK_DIM + (bj + TH_DIM)], sum2);
-        // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = min(C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)], sum3);
+        C[bi][bj] = min(C[bi][bj], sum0);
+        C[(bi + TH_DIM)][bj] = min(C[(bi + TH_DIM)][bj], sum1);
+        C[bi][(bj + TH_DIM)] = min(C[bi][(bj + TH_DIM)], sum2);
+        C[(bi + TH_DIM)][(bj + TH_DIM)] = min(C[(bi + TH_DIM)][(bj + TH_DIM)], sum3);
         __syncthreads();
     }
 
     // Transfer back to graph
-    graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)] = C[bi*BLOCK_DIM + bj];
-    // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
-    // graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
-    // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
+    graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)] = C[bi][bj];
+    graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)] = C[(bi + TH_DIM)][bj];
+    graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[bi][(bj + TH_DIM)];
+    graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)][(bj + TH_DIM)];
 }
 
 
@@ -164,69 +166,71 @@ __global__ void floyd_warshall_block_kernel_phase2(int n, int k, int* graph) {
     const unsigned int bj = threadIdx.x;
 
     // __shared__ int A[BLOCK_DIM * BLOCK_DIM];
-    __shared__ int B[BLOCK_DIM * BLOCK_DIM];
-    __shared__ int C[BLOCK_DIM * BLOCK_DIM];
+    __shared__ int B[BLOCK_DIM][BLOCK_DIM];
+    __shared__ int C[BLOCK_DIM][BLOCK_DIM];
 
-    C[bi*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
-    // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
-    // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
-    // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+    C[bi][bj] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
+    C[(bi + TH_DIM)][bj] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
+    C[bi][(bj + TH_DIM)] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+    C[(bi + TH_DIM)][(bj + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
 
-    B[bi*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
-    // B[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
-    // B[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
-    // B[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+    B[bi][bj] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
+    B[(bi + TH_DIM)][bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
+    B[bi][(bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+    B[(bi + TH_DIM)][(bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
 
     __syncthreads();
 
     // block_calc(C, C, B, bi, bj);
+    #pragma unroll
     for (int k = 0; k < BLOCK_DIM; k++) {
-        int sum0 = C[bi*BLOCK_DIM + k] + B[k*BLOCK_DIM + bj];
-        // int sum1 = C[(bi + TH_DIM)*BLOCK_DIM + k] + B[k*BLOCK_DIM + bj];
-        // int sum2 = C[bi*BLOCK_DIM + k] + B[k*BLOCK_DIM + (bj + TH_DIM)];
-        // int sum3 = C[(bi + TH_DIM)*BLOCK_DIM + k] + B[k*BLOCK_DIM + (bj + TH_DIM)];
+        int sum0 = C[bi][k] + B[k][bj];
+        int sum1 = C[(bi + TH_DIM)][k] + B[k][bj];
+        int sum2 = C[bi][k] + B[k][(bj + TH_DIM)];
+        int sum3 = C[(bi + TH_DIM)][k] + B[k][(bj + TH_DIM)];
 
-        C[bi*BLOCK_DIM + bj] = min(C[bi*BLOCK_DIM + bj], sum0);
-        // C[(bi + TH_DIM)*BLOCK_DIM + bj] = min(C[(bi + TH_DIM)*BLOCK_DIM + bj], sum1);
-        // C[bi*BLOCK_DIM + (bj + TH_DIM)] = min(C[bi*BLOCK_DIM + (bj + TH_DIM)], sum2);
-        // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = min(C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)], sum3);
+        C[bi][bj] = min(C[bi][bj], sum0);
+        C[(bi + TH_DIM)][bj] = min(C[(bi + TH_DIM)][bj], sum1);
+        C[bi][(bj + TH_DIM)] = min(C[bi][(bj + TH_DIM)], sum2);
+        C[(bi + TH_DIM)][(bj + TH_DIM)] = min(C[(bi + TH_DIM)][(bj + TH_DIM)], sum3);
         __syncthreads();
     }
 
-    graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)] = C[bi*BLOCK_DIM + bj];
-    // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
-    // graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
-    // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
+    graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)] = C[bi][bj];
+    graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)] = C[(bi + TH_DIM)][bj];
+    graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[bi][(bj + TH_DIM)];
+    graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)][(bj + TH_DIM)];
 
     // Phase 2 2/2
 
-    C[bi*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + bj)];
-    // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + bj)];
-    // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + (bj + TH_DIM))];
-    // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + (bj + TH_DIM))];
+    C[bi][bj] = graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + bj)];
+    C[(bi + TH_DIM)][bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + bj)];
+    C[bi][(bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + (bj + TH_DIM))];
+    C[(bi + TH_DIM)][(bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + (bj + TH_DIM))];
 
     __syncthreads();
 
     // block_calc(C, B, C, bi, bj);
+    #pragma unroll
     for (int k = 0; k < BLOCK_DIM; k++) {
-        int sum0 = B[bi*BLOCK_DIM + k] + C[k*BLOCK_DIM + bj];
-        // int sum1 = B[(bi + TH_DIM)*BLOCK_DIM + k] + C[k*BLOCK_DIM + bj];
-        // int sum2 = B[bi*BLOCK_DIM + k] + C[k*BLOCK_DIM + (bj + TH_DIM)];
-        // int sum3 = B[(bi + TH_DIM)*BLOCK_DIM + k] + C[k*BLOCK_DIM + (bj + TH_DIM)];
+        int sum0 = B[bi][k] + C[k][bj];
+        int sum1 = B[(bi + TH_DIM)][k] + C[k][bj];
+        int sum2 = B[bi][k] + C[k][(bj + TH_DIM)];
+        int sum3 = B[(bi + TH_DIM)][k] + C[k][(bj + TH_DIM)];
 
-        C[bi*BLOCK_DIM + bj] = min(C[bi*BLOCK_DIM + bj], sum0);
-        // C[(bi + TH_DIM)*BLOCK_DIM + bj] = min(C[(bi + TH_DIM)*BLOCK_DIM + bj], sum1);
-        // C[bi*BLOCK_DIM + (bj + TH_DIM)] = min(C[bi*BLOCK_DIM + (bj + TH_DIM)], sum2);
-        // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = min(C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)], sum3);
+        C[bi][bj] = min(C[bi][bj], sum0);
+        C[(bi + TH_DIM)][bj] = min(C[(bi + TH_DIM)][bj], sum1);
+        C[bi][(bj + TH_DIM)] = min(C[bi][(bj + TH_DIM)], sum2);
+        C[(bi + TH_DIM)][(bj + TH_DIM)] = min(C[(bi + TH_DIM)][(bj + TH_DIM)], sum3);
         __syncthreads();
     }
    
 
     // Block C is the only one that could be changed
-    graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + bj)] = C[bi*BLOCK_DIM + bj];
-    // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
-    // graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
-    // graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
+    graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + bj)] = C[bi][bj];
+    graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + bj)] = C[(bi + TH_DIM)][bj];
+    graph[(k*BLOCK_DIM + bi)*n + (i*BLOCK_DIM + (bj + TH_DIM))] = C[bi][(bj + TH_DIM)];
+    graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (i*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)][(bj + TH_DIM)];
 }
 
 
@@ -243,19 +247,19 @@ __global__ void floyd_warshall_block_kernel_phase3(int n, int k, int* graph, int
     __shared__ int C[BLOCK_DIM][BLOCK_DIM];
 
     C[bi][bj] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)];
-    // C[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
-    // C[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
-    // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+    C[(bi + TH_DIM)][bj] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
+    C[bi][(bj + TH_DIM)] = graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+    C[(bi + TH_DIM)][(bj + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))];
 
     A[bj][bi] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + bj)];
-    // A[bj*BLOCK_DIM + (bi + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
-    // A[(bj + TH_DIM)*BLOCK_DIM + bi] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
-    // A[(bj + TH_DIM)*BLOCK_DIM + (bi + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+    A[bj][(bi + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + bj)];
+    A[(bj + TH_DIM)][bi] = graph[(i*BLOCK_DIM + bi)*n + (k*BLOCK_DIM + (bj + TH_DIM))];
+    A[(bj + TH_DIM)][(bi + TH_DIM)] = graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (k*BLOCK_DIM + (bj + TH_DIM))];
 
     B[bi][bj] = graph[(k*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)];
-    // B[(bi + TH_DIM)*BLOCK_DIM + bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
-    // B[bi*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
-    // B[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+    B[(bi + TH_DIM)][bj] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)];
+    B[bi][(bj + TH_DIM)] = graph[(k*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))];
+    B[(bi + TH_DIM)][(bj + TH_DIM)] = graph[(k*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))];
 
     __syncthreads();
 
@@ -263,22 +267,22 @@ __global__ void floyd_warshall_block_kernel_phase3(int n, int k, int* graph, int
     #pragma unroll
     for (int k = 0; k < BLOCK_DIM; k++) {
         int sum0 = A[k][bi] + B[k][bj];
-        // int sum1 = A[k*BLOCK_DIM + (bi + TH_DIM)] + B[k*BLOCK_DIM + bj];
-        // int sum2 = A[k*BLOCK_DIM + bi] + B[k*BLOCK_DIM + (bj + TH_DIM)];
-        // int sum3 = A[k*BLOCK_DIM + (bi + TH_DIM)] + B[k*BLOCK_DIM + (bj + TH_DIM)];
+        int sum1 = A[k][(bi + TH_DIM)] + B[k][bj];
+        int sum2 = A[k][bi] + B[k][(bj + TH_DIM)];
+        int sum3 = A[k][(bi + TH_DIM)] + B[k][(bj + TH_DIM)];
 
         C[bi][bj] = min(C[bi][bj], sum0);
-        // C[(bi + TH_DIM)*BLOCK_DIM + bj] = min(C[(bi + TH_DIM)*BLOCK_DIM + bj], sum1);
-        // C[bi*BLOCK_DIM + (bj + TH_DIM)] = min(C[bi*BLOCK_DIM + (bj + TH_DIM)], sum2);
-        // C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)] = min(C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)], sum3);
+        C[(bi + TH_DIM)][bj] = min(C[(bi + TH_DIM)][bj], sum1);
+        C[bi][(bj + TH_DIM)] = min(C[bi][(bj + TH_DIM)], sum2);
+        C[(bi + TH_DIM)][(bj + TH_DIM)] = min(C[(bi + TH_DIM)][(bj + TH_DIM)], sum3);
     }
 
     // __syncthreads();
 
     graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + bj)] = C[bi][bj];
-    // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)] = C[(bi + TH_DIM)*BLOCK_DIM + bj];
-    // graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))] = C[bi*BLOCK_DIM + (bj + TH_DIM)];
-    // graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)*BLOCK_DIM + (bj + TH_DIM)];
+    graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + bj)] = C[(bi + TH_DIM)][bj];
+    graph[(i*BLOCK_DIM + bi)*n + (j*BLOCK_DIM + (bj + TH_DIM))] = C[bi][(bj + TH_DIM)];
+    graph[(i*BLOCK_DIM + (bi + TH_DIM))*n + (j*BLOCK_DIM + (bj + TH_DIM))] = C[(bi + TH_DIM)][(bj + TH_DIM)];
 }
 
 
