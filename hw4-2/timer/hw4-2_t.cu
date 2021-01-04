@@ -148,7 +148,7 @@ void back_DistCuda(){
 }
 
 void input(char* infile) {
-    eventRecordStart(3);
+    
     FILE* file = fopen(infile, "rb");
     fread(&n, sizeof(int), 1, file);
     fread(&m, sizeof(int), 1, file);
@@ -167,17 +167,18 @@ void input(char* infile) {
             }
         }
     }
-
     int pair[3];
     int *edges_buf = (int*)malloc(3 * m * SIZEOFINT);
+    eventRecordStart(3);
     fread(edges_buf, sizeof(int), 3 * m, file);
+    eventRecordStop(3);
     for (int i = 0; i < m; i++) {
         // fread(pair, sizeof(int), 3, file);
         setDist(edges_buf[3 * i], edges_buf[3 * i + 1], edges_buf[3 * i + 2]);
     }
     free(edges_buf);
     fclose(file);
-    eventRecordStop(3);
+    
 }
 
 void output(char* outFileName) {
